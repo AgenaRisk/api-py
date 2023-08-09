@@ -211,13 +211,13 @@ example_model.create_dataset(example_case)
 Some `Node` fields can be modified with a direct access to the field. For example, to update the name or a description information of a `Node`, simply use:
 
 ```python
-example_node.name <- "new node name"
+example_node.name = "new node name"
 ```
 
 or
 
 ```python
-example_node.description <- "new node description"
+example_node.description = "new node description"
 ```
 
 Because changing the name or description of a `Node` does not cause any compatibility issues. However, some fields such as table type or parents will have implications for other fields. Changing the node parents will change the size of its NPT, changing the node's table type from "Manual" to "Expression" will mean the state probabilities are now defined in a different way. Therefore, to modify such fields of a `Node`, use the corresponding method described below. These methods will ensure all the sensible adjustments are made when a field of a `Node` has been changed.
@@ -429,7 +429,7 @@ This function creates an empty CSV file with the correct format so that it can b
 To import an existing agena.ai model (from a .cmpx file), create a new `Model` object using the `from_cmpx()` option:
 
 ```python
-new_model <- Model.from_cmpx("/path/to/model/file.cmpx")
+new_model = Model.from_cmpx("/path/to/model/file.cmpx")
 ```
 
 This creates a python `Model` object with all the information taken from the .cmpx file. All fields and sub-fields of the `Model` object are accessible now. For example, you can see the networks in this model with:
@@ -540,11 +540,11 @@ Note that probabilities will be a list (of size one) of lists even when there is
 To update node information, some fields can be simply overwritten with direct access to the field if it does not affect other fields. These fields are node name, description, or state names (without changing the number of states). For example: 
 
 ```python
-node_one.states <- ["Negative","Positive"]
+node_one.states = ["Negative","Positive"]
 ```
 
 ```python
-node_one.description <- "first node we have created"
+node_one.description = "first node we have created"
 ```
 
 Other fields can be specified with the relevant set functions. To set probability values for a node with a manual table (distr_type), you can use `set_probabilities()` function:
@@ -738,7 +738,7 @@ Here clearly `nodes` field is the most important information for a network but y
 Below is an example of network creation with the nodes added later:
 
 ```python
-network_one <- Network(id = "network_one")
+network_one = Network(id = "network_one")
 
 network_one.add_node(node_three)
 network_one.add_node(node_one)
@@ -752,13 +752,13 @@ The order in which nodes are added to a network is not important as long as all 
 Alternatively, you can create a new network with its nodes:
 
 ```python
-network_two <- Network(id = "network_two", nodes = [node_one, node_two, node_three])
+network_two = Network(id = "network_two", nodes = [node_one, node_two, node_three])
 ```
 
 Or you can create the network with some nodes and add more nodes later on:
 
 ```python
-network_three <- Network(id = "network_three", nodes = [node_one, node_three])
+network_three = Network(id = "network_three", nodes = [node_one, node_three])
 
 network_three.add_node(node_two)
 ```
@@ -783,7 +783,7 @@ Model(id, networks, dataSets, networkLinks)
 For example, you can create a model with the networks defined above:
 
 ```python
-example_model <- Model(networks = [network_one])
+example_model = Model(networks = [network_one])
 ```
 
 Note that even when there is only one network in the model, the input has to be a list. Networks in a model can be modified with `add_network()` and `remove_network()` functions:
