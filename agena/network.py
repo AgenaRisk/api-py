@@ -1,5 +1,7 @@
 from node import Node
 
+import networkx as nx
+import matplotlib.pyplot as plt
 
 class Network():
     def __init__(self, id, name=None, description=None, nodes=None):
@@ -22,7 +24,26 @@ class Network():
             self.nodes = []
         
     def plot(self):
-        pass
+
+        from_list = []
+        to_list = []
+
+        for nd in self.nodes:
+            if len(nd.parents)>0:
+                for pr in nd.parents:
+                    from_list.append(pr.id)
+                    to_list.append(nd.id)
+        
+        G = nx.DiGraph()
+        for nd in self._get_nodes():
+            G.add_node(nd)
+
+        for p, c in zip(from_list, to_list):
+            G.add_edges_from([(p, c)])
+
+        nx.draw(G,with_labels=True)
+        plt.draw()
+        plt.show()
 
     def add_node(self, new_node: Node):
         if new_node.id in self._get_nodes():
