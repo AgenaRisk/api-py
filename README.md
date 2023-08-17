@@ -28,8 +28,18 @@ from cloud import *
 from localapi import *
 ```
 
-pyagena requires the following python packages to be installed: `requests`, `pandas`
-`sys`, `os`, `tempfile`, `json`, `getpass`, `time`
+pyagena requires the following python packages to be installed: `requests`, `pandas`, `networkx`, and `matplotlib`
+
+To install the dependencies, you can use [pip](https://pypi.org/project/pip/) with the commands:
+
+```bash
+pip install requests
+pip install pandas
+pip install matplotlib
+pip install networkx
+```
+
+System packages used in pyagena: `sys`, `os`, `tempfile`, `json`, `getpass`, `time` (not needed to install explicitly)
 
 # 3. Structure of pyagena Classes
 
@@ -278,7 +288,7 @@ A method to remove an existing `Node` object from the network. Note that removin
 
 ### 4.2.3 `plot()`
 
-[TO BE IMPLEMENTED]
+A method to plot the graphical structure of a BN network.
 
 ## 4.3 `Model` methods
 
