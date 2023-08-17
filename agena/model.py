@@ -363,11 +363,21 @@ class Model():
                     print(f"Results are successfully imported to case {ds.id}")
 
      def get_results(self, filename=None):
-          pass #will implement after the calculation capabilities
+
+          df = pd.DataFrame(columns=["Case", "Network", "Node", "State", "Value"])
+
+          for ds in self.datasets:
+               for rs in ds.results:
+                    for rv in rs["resultValues"]:
+                         df.loc[len(df)] = [ds.id, rs["network"], rs["node"], rv["label"], rv["value"]]
+
+          if filename is not None:
+               df.to_csv(filename + ".csv")
+          else:
+               df.to_csv(self.id + "_results.csv")
 
      def create_sensitivity_config(self, **kwargs):
           sens_config = {}
-          #valid_keys = ["targetNode", "network", "dataSet", "sensitivityNodes", "reportSettings", "model", "modelPath", "callback"]
           for fld in kwargs:
                sens_config[fld] = kwargs[fld]
           return sens_config
@@ -446,34 +456,3 @@ class Model():
 
 
           return cls(networks=networks_list, id=None, datasets=datasets_list, network_links=agena_network_links, settings=agena_settings)
-
-     @classmethod
-     def generate_tic(cls):
-          tic = Node("tic")
-          shock = Node("shock", type="Labelled",states=["None", "Compensated", "Uncompensated"])
-          tissueinjury = Node("tissueinjury", type="Ranked")
-          tic.add_parent(shock)
-          tic.add_parent(tissueinjury)
-          heartrate = Node("heartrate", simulated=True)
-          heartrate.add_parent(shock)
-          heartrate.set_distr_type("Partitioned")
-          lactate = Node("lactate", simulated=True)
-          shock.set_probabilities([[0.5,0.2,0.3]])
-          tic.set_probabilities([[0.9,0.1],[0.8,0.2],[0.7,0.3],[0.8,0.2],[0.7,0.3],[0.6,0.4],[0.8,0.2],[0.7,0.3],[0.5,0.5]])
-          heartrate.set_expressions(["Normal(90,10)","Normal(110,15)","Normal(120,30)"],partitioned_parents=["shock"])
-          lactate.add_parent(shock)
-          lactate.set_expressions(["TNormal(4,1,-10,10)","TNormal(4,1,-10,10)","TNormal(4,1,-10,10)"],partitioned_parents=["shock"])
-          energy = Node("energy", type="Ranked")
-          energy.set_probabilities([[0.5,0.3,0.2]])
-          tissueinjury.add_parent(energy)
-          mechanism = Node("mechanism",type="Labelled")
-          mechanism.states = ["Penetrating", "Blunt"]
-          tissueinjury.add_parent(mechanism)
-          network_tic = Network("tic_network", nodes=[tic,shock,tissueinjury,heartrate])
-          network_tic.add_node(energy)
-          network_tic.add_node(mechanism)
-          network_tic.add_node(lactate)
-          model_tic = Model(networks=[network_tic])
-          model_tic.enter_observation(network_id="tic_network", node_id="energy",value="High")
-
-          return model_tic
