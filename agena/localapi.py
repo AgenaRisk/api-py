@@ -4,7 +4,6 @@ from dataset import Dataset
 from model import Model
 
 from sys import platform
-import subprocess
 import os
 import tempfile
 import json
@@ -83,7 +82,7 @@ def local_api_calculate(model, dataset, out_path):
         model_path = tempdir.name + "/" + model.id + ".cmpx"
         data_path = tempdir.name + "/" + data_json[0]["id"] + ".json"
 
-        command = 'mvn exec:java@calculate -Dexec.args="--model \'"' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\'"'
+        command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\'"'
         send_command = os.system(command)
 
     if send_command == 0:
@@ -121,7 +120,7 @@ def local_api_sensitivity_analysis(model, sens_config, out_path):
         model_path = tempdir.name + "/" + model.id + ".cmpx"
         config_path = tempdir.name + "/" + model.id + "_sens_config.json"
 
-        command = 'mvn exec:java@sensitivity -Dexec.args="--model \'"' + model_path + '\'  --out \'' + out_path + '\' --config \'' + config_path + '\'"'
+        command = 'mvn exec:java@sensitivity -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --config \'' + config_path + '\'"'
         send_command = os.system(command)
 
     if send_command == 0:
