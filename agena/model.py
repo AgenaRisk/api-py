@@ -352,11 +352,25 @@ class Model():
           filename = self.id+"_Data.csv"
           test.to_csv(filename)
 
-     def import_results(self, results_file):
-          pass #will implement after the calculation capabilities
+     def import_results(self, file_path):
+          with open(file_path, "r") as file:
+               results_string = file.read()
+          results = json.loads(results_string)[0]["results"]
+          dataset_id =   json.loads(results_string)[0]["id"]
+          for ds in self.datasets:
+               if ds.id == dataset_id:
+                    ds.results = results
+                    print(f"Results are successfully imported to case {ds.id}")
 
      def get_results(self, filename=None):
           pass #will implement after the calculation capabilities
+
+     def create_sensitivity_config(self, **kwargs):
+          sens_config = {}
+          #valid_keys = ["targetNode", "network", "dataSet", "sensitivityNodes", "reportSettings", "model", "modelPath", "callback"]
+          for fld in kwargs:
+               sens_config[fld] = kwargs[fld]
+          return sens_config
 
      @classmethod
      def from_cmpx(cls, filename):

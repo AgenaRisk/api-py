@@ -30,3 +30,12 @@ class Dataset():
             return "Dataset: % s (with % d observations)" % (self.id, len(self.observations)) 
         else:
             return "Dataset: % s (with 0 observations)" % (self.id) 
+
+    def _to_json(self):
+        json_dataset = []
+        this_ds = {}
+        this_ds["id"] = self.id
+        this_ds["observations"] = self.observations
+        this_ds["results"] = self.results
+        json_dataset.append(this_ds)
+        return json_dataset
