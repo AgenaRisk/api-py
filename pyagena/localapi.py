@@ -1,7 +1,7 @@
-from node import Node
-from network import Network
-from dataset import Dataset
-from model import Model
+from .node import Node
+from .network import Network
+from .dataset import Dataset
+from .model import Model
 
 from sys import platform
 import os

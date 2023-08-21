@@ -1,4 +1,4 @@
-from node import Node
+from .node import Node
 
 import networkx as nx
 import matplotlib.pyplot as plt

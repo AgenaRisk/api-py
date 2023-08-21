@@ -1,6 +1,6 @@
-from node import Node
-from network import Network
-from dataset import Dataset
+from .node import Node
+from .network import Network
+from .dataset import Dataset
 
 import json
 import pandas as pd
