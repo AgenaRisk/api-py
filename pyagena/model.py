@@ -4,6 +4,7 @@ from .dataset import Dataset
 
 import json
 import pandas as pd
+import os
 
 class Model():         
      def __init__(self, networks: list, id=None, datasets=None, network_links=None, settings=None):
@@ -11,7 +12,7 @@ class Model():
           self.networks = networks
 
           if settings is None:
-               self.settings = {"parameterLearningLogging":False, "discreteTails":False, "sampleSizeRanked":5, "convergence":0.001, "simulationLogging":False, "iterations":50, "tolerance":1}
+               self.settings = {"parameterLearningLogging":False, "discreteTails":False, "sampleSizeRanked":5, "convergence":0.01, "simulationLogging":False, "iterations":50, "tolerance":1}
           else:
                self.settings = settings
 
@@ -62,7 +63,21 @@ class Model():
             
         return nets_list
 
-     def add_network_link(self, source_network, source_node, target_network, target_node, link_type, pass_state=None):
+     def get_network(self, network_id):
+          if network_id not in self._get_networks():
+               raise ValueError(f"The model does not have a network with the id {network_id}")
+          
+          network = [n for n in self.networks if n.id==network_id].pop()
+          return network
+
+     def get_dataset(self, dataset_id):
+          if dataset_id not in self._get_datasets():
+               raise ValueError(f"The model does not have a dataset with the id {dataset_id}")
+              
+          dataset = [d for d in self.datasets if d.id==dataset_id].pop()
+          return dataset
+
+     def add_network_link(self, source_network, source_node, target_network, target_node, link_type="Marginals", pass_state=None):
 
           out_nw = [nid for nid in self.networks if nid.id == source_network].pop()
           out_node = [nd for nd in out_nw.nodes if nd.id == source_node].pop()
@@ -146,20 +161,17 @@ class Model():
           self.network_links = []
           print("All network links are removed from the model")
 
-     def create_dataset(self, dataset, from_cmpx=False):
-          new_ds = Dataset(id=dataset)
+     def create_dataset(self, dataset_id, from_cmpx=False):
+          new_ds = Dataset(id=dataset_id)
           self.datasets.append(new_ds)
           if not from_cmpx:
                print("The dataset is successfully created")
-     
-     def import_dataset_from_file(self, dataset):
-          pass
 
-     def remove_dataset(self, dataset, from_cmpx=False):
-          if dataset not in self._get_datasets():
+     def remove_dataset(self, dataset_id, from_cmpx=False):
+          if dataset_id not in self._get_datasets():
                raise ValueError("This dataset does not exist in the model")
 
-          del_ds = [ds for ds in self.datasets if ds.id == dataset].pop()
+          del_ds = self.get_dataset(dataset_id)
           self.datasets.remove(del_ds)
           if not from_cmpx:
                print("The dataset is successfully removed from the model")
@@ -173,22 +185,22 @@ class Model():
           
           return ds_list
      
-     def enter_observation(self, node_id, network_id, value, dataset=None, variable_input=False):
-          if dataset is None:
+     def enter_observation(self, network_id, node_id, value, dataset_id=None, variable_input=False):
+          if dataset_id is None:
                ds = self.datasets[0]
           else:
-               if dataset not in self._get_datasets():
+               if dataset_id not in self._get_datasets():
                     raise ValueError("The dataset does not exist")
                
-               ds = [d for d in self.datasets if d.id==dataset].pop()
+               ds = self.get_dataset(dataset_id)
           
           new_obs = {"node":node_id, "network":network_id, "entries":[]}
 
           if variable_input:
                new_obs["constantName"] = value
-               nw = [n for n in self.networks if n.id==network_id].pop()
-               nd = [d for d in nw.nodes if d.id==node_id].pop()
-               vr_val = nd.variables[value]
+               nw = self.get_network(network_id)
+               nd = nw.get_node(node_id)
+               vr_val = nd._get_variable_value(value)
                new_obs["entries"].append({"weight":1, "value":vr_val})
           else:
                if isinstance(value, list) and len(value)>1:
@@ -202,10 +214,11 @@ class Model():
           
           if len(ds.observations)>0:
                obs_rewrite = False
-               for idx, obs in enumerate(ds.observations):
-                    if (obs["node"] == node_id) & (obs["network"] == network_id):
-                         obs_rewrite = True
-                         rewrite_idx = idx
+               if not variable_input:     
+                    for idx, obs in enumerate(ds.observations):
+                         if (obs["node"] == node_id) & (obs["network"] == network_id):
+                              obs_rewrite = True
+                              rewrite_idx = idx
                if obs_rewrite:
                     ds.observations[rewrite_idx] = new_obs
                if not obs_rewrite:
@@ -214,25 +227,24 @@ class Model():
           else:
                ds.observations.append(new_obs)
                     
-
-     def remove_observation(self, node_id, network_id, dataset=None):
-          if dataset is None:
+     def remove_observation(self, network_id, node_id, dataset_id=None):
+          if dataset_id is None:
                ds = self.datasets[0]
           else:
-               if dataset not in self._get_datasets():
+               if dataset_id not in self._get_datasets():
                     raise ValueError("The dataset does not exist")
                
-               ds = [d for d in self.datasets if d.id==dataset].pop()
+               ds = self.get_dataset(dataset_id)
 
           obs_del = [obs for obs in ds.observations if obs["node"]==node_id and obs["network"]==network_id].pop()
           ds.observations.remove(obs_del)
           print("The dataset is successfully removed")
 
-     def clear_dataset_observations(self, dataset):
-          if dataset not in self._get_datasets():
+     def clear_dataset_observations(self, dataset_id):
+          if dataset_id not in self._get_datasets():
                raise ValueError("The dataset does not exist")
-               
-          ds = [d for d in self.datasets if d.id==dataset].pop()
+
+          ds = self.get_dataset(dataset_id)     
 
           ds.observations = None
           print("All observations in the dataset are successfully cleared")
@@ -250,26 +262,17 @@ class Model():
                     print(f"Model setting {fld} is successfully updated")
 
      def default_settings(self):
-          self.settings = {"parameterLearningLogging":False, "discreteTails":False, "sampleSizeRanked":5, "convergence":0.001, "simulationLogging":False, "iterations":50, "tolerance":1}
+          self.settings = {"parameterLearningLogging":False, "discreteTails":False, "sampleSizeRanked":5, "convergence":0.01, "simulationLogging":False, "iterations":50, "tolerance":1}
           print("Model settings are successfully reset to default")
 
-     def to_cmpx(self, filename=None):
-          exported = self._generate_cmpx()
+     def save_to_file(self, filename):
+          if os.path.splitext(filename)[1] == ".cmpx" or os.path.splitext(filename)[1] == ".json":
+               exported = self._generate_cmpx()
 
-          with open(filename+".cmpx", "w") as outfile:
-               json.dump(exported, outfile)
-
-     def to_json(self, filename=None):
-          exported = self._generate_cmpx()
-
-          with open(filename+".json", "w") as outfile:
-               json.dump(exported, outfile)
-
-     def save_model_as(self, filetype, filename):
-          exported = self._generate_cmpx()
-
-          with open(filename+"."+filetype, "w") as outfile:
-               json.dump(exported, outfile)
+               with open(filename, "w") as outfile:
+                    json.dump(exported, outfile)
+          else:
+               raise ValueError("The input filename must have a .cmpx or .json file extension")
 
      def _generate_cmpx(self):
           json_settings = self.settings
@@ -331,9 +334,9 @@ class Model():
                ds_id = ix
                self.create_dataset(ix, from_cmpx=True)
                for idx, cl in enumerate(data.columns):
-                    this_node = cl.split(".")[0]
-                    this_net = cl.split(".")[1]
-                    if not pd.isna(row[idx]):     self.enter_observation(network_id=this_net, node_id=this_node, dataset=ds_id, value=row[idx])
+                    this_net = cl.split(".")[0]
+                    this_node = cl.split(".")[1]
+                    if not pd.isna(row[idx]):     self.enter_observation(network_id=this_net, node_id=this_node, dataset_id=ds_id, value=row[idx])
           
           if update_model:
                print("The model is sucessfully updated with new cases and observations from the dataset")
@@ -345,7 +348,7 @@ class Model():
                print("The model with new cases and observations is successfully exported as json, the model object does not keep new cases")
 
      def create_csv_template(self):
-          headers = [(nd.id+"."+nt.id) for nt in self.networks for nd in nt.nodes]
+          headers = [(nt.id+"."+nd.id) for nt in self.networks for nd in nt.nodes]
           rows = [ds.id for ds in self.datasets]
           test = pd.DataFrame(columns=headers, index=rows)
           test.index.name = "Case"
@@ -360,11 +363,12 @@ class Model():
           for ds in self.datasets:
                if ds.id == dataset_id:
                     ds.results = results
+                    ds._convert_to_dotdict()
                     print(f"Results are successfully imported to case {ds.id}")
 
      def get_results(self, filename=None):
 
-          df = pd.DataFrame(columns=["Case", "Network", "Node", "State", "Value"])
+          df = pd.DataFrame(columns=["Case", "Network", "Node", "State", "Probability"])
 
           for ds in self.datasets:
                for rs in ds.results:

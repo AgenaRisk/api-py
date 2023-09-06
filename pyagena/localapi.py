@@ -7,6 +7,7 @@ from sys import platform
 import os
 import tempfile
 import json
+import subprocess
 
 def local_api_clone():
     send_command = os.system("git clone https://github.com/AgenaRisk/api.git")
@@ -45,87 +46,101 @@ def local_api_activate_license(key):
         send_command = os.system(command)
 
     if send_command == 0:
-        print("License key activated successfully")
-        os.chdir(cur_wd)
+        full_response = str(subprocess.check_output(command))
+        already = "AgenaRisk already activated"
+        if already in full_response:
+            os.chdir(cur_wd)
+            raise ValueError("AgenaRisk already activated")
+        else:
+            print("License key activated successfully")
+            os.chdir(cur_wd)
     else:
         os.chdir(cur_wd)
         raise ValueError("License key activation failed")
 
 
-def local_api_calculate(model, dataset, out_path):
+def local_api_calculate(model, dataset_id):
     cur_wd = os.getcwd()
     os.chdir("./api/")
     
     tempdir = tempfile.TemporaryDirectory()
 
     for ds in model.datasets:
-        if ds.id == dataset:
+        if ds.id == dataset_id:
             data_json = ds._to_json()
         
     if platform == "win32":
-        model_file = model.to_cmpx(tempdir.name + "\\" + model.id)
-        with open(tempdir.name + "\\" + data_json[0]["id"] + ".json", "w") as outfile:
-            json.dump(data_json, outfile)
-
         model_path = tempdir.name + "\\" + model.id + ".cmpx"
         data_path = tempdir.name + "\\" + data_json[0]["id"] + ".json"
-        out_path = out_path.replace('/', '\\')
+        out_path = tempdir.name + "\\" + model.id + "_out.json"
+
+        model_file = model.save_to_file(model_path)
+        with open(data_path, "w") as outfile:
+            json.dump(data_json, outfile)
 
         command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\'`\\"\\""'
         send_command = os.system(command)
     
-    elif platform == "darwin" or platform == "linux" or platform == "linux2":
-        model_file = model.to_cmpx(tempdir.name + "/" + model.id)
-        with open(tempdir.name + "/" + data_json[0]["id"] + ".json", "w") as outfile:
-            json.dump(data_json, outfile)
-        
+    elif platform == "darwin" or platform == "linux" or platform == "linux2":       
         model_path = tempdir.name + "/" + model.id + ".cmpx"
         data_path = tempdir.name + "/" + data_json[0]["id"] + ".json"
+        out_path = tempdir.name + "/" + model.id + "_out.json"
+
+        model_file = model.save_to_file(model_path)
+        with open(data_path, "w") as outfile:
+            json.dump(data_json, outfile)
 
         command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\'"'
         send_command = os.system(command)
 
     if send_command == 0:
         model.import_results(out_path)
-        print("The calculation is completed and the results are saved to the given directory")
+        print("The calculation is completed, the dataset in the model now contains new calculation results")
         os.chdir(cur_wd)
     
     else:
         os.chdir(cur_wd)
         raise ValueError("Calculation failed")
 
-def local_api_sensitivity_analysis(model, sens_config, out_path):
+def local_api_sensitivity_analysis(model, sens_config):
     cur_wd = os.getcwd()
     os.chdir("./api/")
 
     tempdir = tempfile.TemporaryDirectory()
 
     if platform == "win32":
-        model_file = model.to_cmpx(tempdir.name + "\\" + model.id)
-        with open(tempdir.name + "\\" + model.id + "_sens_config.json", "w") as outfile:
-            json.dump(sens_config, outfile)
-
         model_path = tempdir.name + "\\" + model.id + ".cmpx"
         config_path = tempdir.name + "\\" + model.id + "_sens_config.json"
-        out_path = out_path.replace('/', '\\')
+        out_path = tempdir.name + "\\" + model.id + "_out.json"
+
+        model_file = model.save_to_file(model_path)
+        with open(config_path, "w") as outfile:
+            json.dump(sens_config, outfile)
 
         command = 'powershell -command "mvn exec:java@sensitivity \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --config \'' + config_path + '\'`\\"\\""'
         send_command = os.system(command)
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
-        model_file = model.to_cmpx(tempdir.name + "/" + model.id)
-        with open(tempdir.name + "/" + model.id + "_sens_config.json", "w") as outfile:
-            json.dump(sens_config, outfile)
         
         model_path = tempdir.name + "/" + model.id + ".cmpx"
         config_path = tempdir.name + "/" + model.id + "_sens_config.json"
+        out_path = tempdir.name + "/" + model.id + "_out.json"
+
+        model_file = model.save_to_file(model_path)
+        with open(config_path, "w") as outfile:
+            json.dump(sens_config, outfile)
 
         command = 'mvn exec:java@sensitivity -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --config \'' + config_path + '\'"'
         send_command = os.system(command)
 
     if send_command == 0:
-        print("The sensitivity analysis is completed and the results are saved to the given directory")
+        with open(out_path, "r") as file:
+            results_string = file.read()
+        sens_results = json.loads(results_string)
+        
+        #print("The sensitivity analysis is completed and the results are saved to working directory")
         os.chdir(cur_wd)
+        return(sens_results)
     
     else:
         os.chdir(cur_wd)
@@ -135,7 +150,6 @@ def local_api_batch_calculate(model):
     
     for ds in model.datasets:
         this_ds = ds.id
-        this_output = model.id + "_" + ds.id + "_results.json"
-        local_api_calculate(model, this_ds, this_output)
+        local_api_calculate(model, this_ds)
     
 

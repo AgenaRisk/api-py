@@ -13,7 +13,7 @@
 
 # 1. Description
 
-pyagena is a python environment for creating, modifying, and parsing Bayesian network models, and sending the models to agena.ai Cloud or to local agena.ai developer API to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in python and export to .cmpx and .json files locally, as well as authenticate with agena.ai Cloud or use local agena.ai developer API for model calculations and sensitivity analyses. In the rest of this document, the python environment for agena.ai is referred to as pyagena.
+pyagena is a python environment for creating, modifying, and parsing Bayesian network models, and sending the models to agena.ai Cloud or to local agena.ai developer API to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in python and export to .cmpx and .json files locally, as well as authenticate with agena.ai Cloud or use local agena.ai developer API for model calculations and sensitivity analyses. In the rest of this document, the python environment for agena.ai is referred to as pyagena. pyagena is developed for Python 3.
 
 # 2. Prerequisites and Installation
 
@@ -51,7 +51,7 @@ pip install matplotlib
 pip install networkx
 ```
 
-System packages used in pyagena: `sys`, `os`, `tempfile`, `json`, `getpass`, `time` (just for your information, not needed to install explicitly)
+System packages used in pyagena: `sys`, `os`, `tempfile`, `json`, `getpass`, `time`, and `subprocess` (just for your information, not needed to install explicitly)
 
 # 3. Structure of pyagena Classes
 
@@ -111,6 +111,8 @@ States of the node (if not simulated). If states are not specified, depending on
 * "Boolean" or "Labelled" node: "False", "True"
 * "Ranked" node: "Low", "Medium", "High"
 * "DiscreteReal" node: "0", "1"
+* "IntegerInterval" node (if not simulated): "(-Infinity, -1]", "[0, 4]", "[5, Infinity)"
+* "ContinuousInterval" node (if not simulated): "(-Infinity, -1)", "[-1, 1)", "[1, Infinity)"
 
 And for a node with the table type (`distr_type`) "Expression", the default expression is: "Normal(0,1000000)"
 
@@ -126,6 +128,45 @@ If the table type (`distr_type`) of the node is "Expression" or "Partitioned", t
 * If the node's table type is "Partitioned", the `expressions` field will be a list of as many expressions as the number of parent node states on which the expression is partitioned.
 
 To see how to set the expressions for a node, see `set_expressions()` function.
+
+Possible expressions for the node types are listed below:
+
+Boolean and Labelled:
+* Comparative
+
+IntegerInterval
+* Binomial
+* Exponential 
+* Geometric 
+* Hypergeometric 
+* Negative Binomial 
+* Normal 
+* Poisson 
+* TNormal 
+* Triangular 
+* Uniform 
+
+ContinuousInterval
+* Arithmetic
+* Beta
+* BetaPert
+* ChiSquared
+* Exponential
+* ExtremeValue
+* Gamma
+* Logistic
+* LogNormal
+* Normal
+* Student
+* TNormal
+* Triangle
+* Uniform
+* Weibull
+
+Ranked
+* TNormal
+
+For further information on expressions, please refer to [agena.ai modeller manual, Sections 22 (Statistical distributions) and 23 (Expressions)](https://resources.agena.ai/materials/AgenaRisk%2010%20Desktop%20User%20Manual.pdf).
 
 ### 3.1.11 `partitions`
 
@@ -173,7 +214,7 @@ Under each dataset (case), observations for all the observed nodes in all the ne
 
 ### 3.3.3 `results`
 
-This field is defined only for when a .cmpx model with calculations is imported. When creating a new BN in the python environment, this field is not created or filled in. The `results` field stores the posterior probability and inference results upon model calculation on agena.ai Cloud or local agena.ai developer API.
+This field is defined only for when a .cmpx model with calculations is imported or after the model is calculated with the agena.ai Cloud or local API. When creating a new BN in the python environment, this field is not filled in. The `results` field stores the posterior probability and inference results upon model calculation on agena.ai Cloud or local agena.ai developer API.
 
 ## 3.4 `Model` objects
 
@@ -201,11 +242,9 @@ To see how to create these links, see `add_network_link()` function later in thi
 
 `Model` settings for calculations. It includes the following fields (the values in parantheses are the defaults if settings are not specified for a model):
 
-* parameterLearningLogging (FALSE)
-* discreteTails (FALSE)
+* discreteTails (False)
 * sampleSizeRanked (5)
-* convergence (0.001)
-* simulationLogging (FALSE)
+* convergence (0.01)
 * iterations (50)
 * tolerance (1)
 
@@ -249,38 +288,42 @@ Because changing the name or description of a `Node` does not cause any compatib
 
 These are the methods `Node` objects can call for various purposes with their input parameters shown in parantheses:
 
-### 4.1.1 `add_parent(new_parent)`
+### 4.1.1 `set_states(states)`
+
+The method to update the states of the `Node` object. The node states can be defined upon creation if the node is a discrete node. If states are not specified during creation, sensible defaults will be assigned based on the node type. With `set_states()` it is possible to update node states later on. If the number of new states given with this method is the same as the previous number of node states, state names will be updated. If `set_states()` changes the number of node states, node probability table size will be adjusted accordingly and probability values will reset to uniform.
+
+### 4.1.2 `add_parent(new_parent)`
 
 The method to add a new parent to a node. Equivalent of adding an arc between two nodes on agena.ai Modeller. The input parameter `new_parent` is another `Node` object. If `new_parent` is already a parent for the node, the function does not update the `parents` field of the node.
 
 When a new parent is added to a node, its NPT values and expressions are reset/resized accordingly. 
 
-### 4.1.2 `remove_parent(old_parent)` 
+### 4.1.3 `remove_parent(old_parent)` 
 
 The method to remove one of the existing parents of a node. Equivalent of removing the arc between two nodes on agena.ai Modeller. The input parameter `old_parent` is a `Node` object which has already been added to the `parents` field of the node.
 
 When an existing parent is removed from a node, its NPT values and expressions are reset/resized accordingly.
 
-### 4.1.3 `set_distr_type(new_distr_type)`
+### 4.1.4 `set_distr_type(new_distr_type)`
 
-A method to set the table type (`distr_type`) of a node. If a `Node` is `simulated`, its table type can be "Expression" or "Partitioned" - the latter is only if the node has parent nodes. If a `Node` is `not simulated`, its table type can be "Manual", "Expression", or "Partitioned (if the node has parent nodes)".
+A method to set the table type (`distr_type`) of a node. If a `Node` is `simulated`, its table type can be "Expression" or "Partitioned" - the latter is only if the node has discrete parent nodes. If a `Node` is `not simulated`, its table type can be "Manual", "Expression", or "Partitioned (if the node has parent nodes)".
 
 Changing the node's distribution type (table type) adjusts its `states`/`probabilities`/`expressions`` parameters accordingly.
 
-### 4.1.4 `set_probabilities(new_probs, by_rows = False)`
+### 4.1.5 `set_probabilities(new_probs, by_rows = False)`
 
 The method to set the probability values if the table type (`distr_type`) of a `Node` is "Manual". `new_probs` is a list of lists containing numerical values, and the length of the input list depends on the number of the states of the node and of its parents.
 
 You can format the input list in two different orders. If the parameter `by_rows` is set to `True`, the method will read the input list to fill in the NPT row by row; if set to `False` (it is `False` by default), the method will read the input list to fill in the NPT column by columnn. This behaviour is illustrated with use case examples later in this document.
 
-### 4.1.5 `set_expressions(new_expr, partition_parents = optional)`
+### 4.1.6 `set_expressions(new_expr, partition_parents = optional)`
 The method to set the probability values if the table type (`distr_type`) of a `Node` is "Expression" or "Partitioned". If the table type is "Expression", `new_expr` is a list of size one and `partition_parents` is left untouched. If the table type is "Partitioned", `new_expr` is a list of expressions for each parent state, and `partition_parents` is a list of strings for each partitioned parent node's `id`. See the following sections for examples.
 
-### 4.1.6 `set_variable(variable_name, variable_value)`
+### 4.1.7 `set_variable(variable_name, variable_value)`
 
 A method to set variables (constants) for a node. Takes the `variable_name` and `variable_value` inputs which define a new variable (constant) for the node.
 
-### 4.1.7 `remove_variable(variable_name)`
+### 4.1.8 `remove_variable(variable_name)`
 
 A method to remove one of the existing variables (constants) from a node, using the `variable_name`.
 
@@ -322,7 +365,7 @@ This is the method to add links to a model between its networks. These links sta
 * `source_node` = `Node.id` of the source node
 * `target_network` = `Network.id` of the network the target node belongs to
 * `target_node` = `Node.id` of the target node
-* `link_type` = a string of the link type name. It can be one of the following:
+* `link_type` = a string of the link type name. If not specified, it is `Marginals`. It can be one of the following:
     * Marginals
     * Mean
     * Median
@@ -347,32 +390,32 @@ A method to remove network links, given the `id`s of the source and target nodes
 
 A method to remove all existing network links in a model.
 
-### 4.3.7 `create_dataset(new_dataset)`
+### 4.3.7 `create_dataset(dataset_id)`
 
-It is possible to add multiple cases to a model. These cases are new `Dataset` objects added to the `datasets` field of a model.Initially these cases have no observations and are only defined by their `id`s. The cases are populated with the `enter_observation()` function. The `create_dataset()` function takes the `id` of the new dataset to be added as input. 
+It is possible to add multiple cases to a model. These cases are new `Dataset` objects added to the `datasets` field of a model. Initially these cases have no observations and are only defined by their `id`s. The cases are populated with the `enter_observation()` function. The `create_dataset()` function takes the `id` of the new dataset to be added as input. 
 
-### 4.3.8 `remove_dataset(old_dataset)`
+### 4.3.8 `remove_dataset(dataset_id)`
 
-A method to remove an existing scenario from the model. Input parameter `old_dataset` is the string which is the `id` of a dataset (case).
+A method to remove an existing scenario from the model. Input parameter `dataset_id` is the string which is the `id` of a dataset (case).
 
-### 4.3.9 `enter_observation(node_id, network_id, value, dataset = optional, variable_input = False)`
+### 4.3.9 `enter_observation(network_id, node_id, value, dataset_id = optional, variable_input = False)`
 
 A method to enter observation to a model. To enter the observation to a specific dataset (case), the dataset id must be given as the input parameter `dataset`. If `dataset` is left blank, the entered observation will by default go to the first dataset (case) of the model (called "Case 1" by default). This means that if there is no extra datasets created for a model (which by default comes with "Case 1"), any observation entered will be set for this dataset (mimicking the behaviour of entering observation to agena.ai Modeller).
 
 The observation is defined with the mandatory input parameters:
-* `node_id` = `Node.id` of the observed node
 * `network_id` = `Network.id` of the network the observed node belongs to
+* `node_id` = `Node.id` of the observed node
 * `value` = this parameter can be:
     * the value or state of the observation for the observed node (if it is hard evidence)
     * the id of a variable (constant) defined for the node (if `variable_input` is `True`)
     * the array of multiple values and their weights (if it is soft evidence)
 * `variable_input` = a boolean parameter, set to `True` if the entered observation is a variable (constant) id for the node instead of an observed value.
 
-### 4.3.10 `remove_observation(node_id, network_id, dataset = optional)`
+### 4.3.10 `remove_observation(network_id, node_id, dataset_id = optional)`
 
 A method to remove a specific observation from the model. It requires the id of the node which has the observation to be removed and the id of the network the node belongs to.
 
-### 4.3.11 `clear_dataset_observations(dataset)`
+### 4.3.11 `clear_dataset_observations(dataset_id)`
 
 A method to clear all observations in a specific dataset (case) in the model.
 
@@ -389,55 +432,45 @@ A method to clear all observations defined in a model. This function removes all
 A method to change model settings. The input parameters can be some or all of the `settings` fields. For example:
 
 ```python
-example_model.change_settings(parameterLearningLogging=True, convergence=0.01)
+example_model.change_settings(convergence=0.001, iterations=75)
 ```
 
 ### 4.3.15 `default_settings()`
 
 A method to reset model settings back to default values. The default values for model settings are:
 
-* parameterLearningLogging = False
 * discreteTails = False
 * sampleSizeRanked = 5
-* convergence = 0.001
-* simulationLogging = False
+* convergence = 0.01
 * iterations = 50
 * tolerance = 1
 
-### 4.3.16 `to_cmpx(filename = optional)`
+### 4.3.16 `save_to_file(filename)`
 
-A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format readable by agena.ai.
+A method to export the `Model` to a .cmpx or a .json file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a file in the correct format readable by agena.ai.
 
-If the input parameter `filename` is not specified, it will use the `Model.id` for the filename.
+Input parameter `filename` must have a file extension of '.cmpx' or '.json'.
 
-### 4.3.17 `to_json(filename = optional)`
+### 4.3.17 `get_results()`
 
-A method to export the `Model` to a .json file instead of .cmpx. See `to_cmpx()` description above for all the details.
+A method to generate a .csv file based on the calculation results a Model contains. See [Section 8.2](#82-model-calculation) for details.
 
-### 4.3.18 `save_model_as(filetype, filename)`
-
-An alternative method to export the `Model` to a local file. `filetype` can be `"cmpx"` or `"json"`. Note that these have the same effect of using `to_cmpx()` or `to_json()`, respectively.
-
-### 4.3.19 `get_results()`
-
-[TO BE IMPLEMENTED]
-
-### 4.3.20 `from_cmpx(filepath = "/path/to/model/file.cmpx")`
+### 4.3.18 `from_cmpx(filepath = "/path/to/model/file.cmpx")`
 
 This is the class method to create a `Model` object from a .cmpx file. The method parses the .cmpx file and creates the python objects based on the model in the file. To see its use, see examples below.
 
-### 4.3.21 `create_batch_cases(input_data, update_model = False)`
+### 4.3.19 `create_batch_cases(input_data, update_model = True)`
 
 A method to import a series of cases (datasets) and their observations from a .csv file. If the .csv file is prepared in the correct format (see examples below), the method will do either of the following:
 
 * if `update_model` is `True` (default): it will create new datasets for each row in the csv file and enter all the non-missing observations in the row to the model. The model now contains new datasets (cases) with the observations.
 * if `update_model` is `False`: it will create new datasets for each row in the csv file and enter all the non-missing observations in the row to the model, and export the model to a local .json file, and reset the python `Model` object. Now the model does not contain new datasets (cases) but there's a locally saved .json model with all the datasets and observations.
 
-### 4.3.22 `create_csv_template()`
+### 4.3.20 `create_csv_template()`
 
 This method creates an empty CSV file with the correct format so that it can be filled in and used for `create_batch_bases()`. Note that this template includes every single node in the model, not all of which might be observable - you can delete the columns of the nodes which will not be observed.
 
-### 4.3.23 `create_sensitivity_config(...)`
+### 4.3.21 `create_sensitivity_config(...)`
 
 A method to create a sensitivity configuration object if a sensitivity analysis request will be sent to agena.ai Cloud servers or the local API. Its parameters are:
 
@@ -576,24 +609,28 @@ Looking up some example values in the fields that define these nodes:
 * node_four.states =  ["Very low", "Low", "Medium", "High", "Very high"]
 * node_one.distr_type = "Manual"
 * node_one.probabilities = [[0.5, 0.5]]
-* node_three$probabilities = [[0.3333, 0.3333, 0.3333]]
-* node_four$probabilities = [[0.2, 0.2, 0.2, 0.2, 0.2]]
+* node_three.probabilities = [[0.3333, 0.3333, 0.3333]]
+* node_four.probabilities = [[0.2, 0.2, 0.2, 0.2, 0.2]]
 
 Note that probabilities will be a list (of size one) of lists even when there is no parent node.
 
 ## 6.2 Modifying Nodes
 
-To update node information, some fields can be simply overwritten with direct access to the field if it does not affect other fields. These fields are node name, description, or state names (without changing the number of states). For example: 
-
-```python
-node_one.states = ["Negative","Positive"]
-```
+To update node information, some fields can be simply overwritten with direct access to the field if it does not affect other fields. These fields are node name and description.
 
 ```python
 node_one.description = "first node we have created"
 ```
 
-Other fields can be specified with the relevant set functions. To set probability values for a node with a manual table (distr_type), you can use `set_probabilities()` function:
+Other fields can be specified with the relevant set functions. To update the node states, you can use `set_states()`:
+
+```python
+node_one.set_states(["Negative","Positive"])
+```
+
+Note that the input for `set_states()` is a list of node names. If this method changes the number of node states, the NPT will be adjusted accordingly and state probabilities will reset to uniform.
+
+To set probability values for a node with a manual table (distr_type), you can use `set_probabilities()` function:
 
 ```python
 node_one.set_probabilities([[0.2,0.8]])
@@ -656,13 +693,13 @@ node_three.set_probabilities([[0.1, 0.4, 0.5], [0.2, 0.45, 0.35], [0.3, 0.6, 0.1
 Similarly, you can use `set_expressions()` function to define and update expressions for the nodes without Manual NPT tables. If the node has no parents, you can add a single expression:
 
 ```python
-example_node$set_expressions(["TNormal(4,1,-10,10)"])
+example_node.set_expressions(["TNormal(4,1,-10,10)"])
 ```
 
 Or if the node has parents and the expression is partitioned on the parents:
 
 ```python
-example_node$set_expressions(["Normal(90,10)", "Normal(110,15)", "Normal(120,30)"], partition_parents = ["parent_node"])
+example_node.set_expressions(["Normal(90,10)", "Normal(110,15)", "Normal(120,30)"], partition_parents = ["parent_node"])
 ```
 
 In the former example the expression is a list of size one, and in the latter the expression is a list with three elements and the second parameter (`partition_parameters`) is a list which contains the ids of the parent nodes. In the second example, expression input has three elements based on the number of states of the parent node(s) on which the expression is partitioned.
@@ -871,36 +908,27 @@ example_model.create_dataset("Case 2")
 Once added, you can enter observation to the new dataset (case) if you specify the `dataset` parameter in the `enter_observation()` function:
 
 ```python
-example_model.enter_observation(dataset = "Case 2", node_id = node_three, network_id = network_one, value = "Medium")
+example_model.enter_observation(dataset_id = "Case 2", node_id = node_three, network_id = network_one, value = "Medium")
 ```
 
 ## 6.7. Exporting a Model to .cmpx or .json
 
-Once a python model is defined fully and it is ready for calculations, you can export it to a .cmpx or a .json file. The function to create these files convert the information to the correct format for agena.ai to understand. You can either use the following functions:
+Once a python model is defined fully and it is ready for calculations, you can export it to a .cmpx or a .json file:
 
 ```python
-example_model.to_json()
+example_model.save_to_file("example_model.cmpx")
 ```
+
+or
 
 ```python
-example_model.to_cmpx()
+example_model.save_to_file("example_model.json")
 ```
 
-or the following general exporting function and define the filetype yourself:
-
-```python
-example_model.save_model_as(filetype="cmpx", filename="examplemodel")
-```
-
-In the first option, if left blank, the functions will create a file named after the `Model.id` with the correct file extension. You may choose to name the file at the creation:
-
-```python
-example_model.to_json("custom_file_name")
-```
 
 # 7. Creating Batch Cases for a Model in python
 
-pyagena allows creation of batch cases based on a single model and multiple observation sets. Observations should be provided in a CSV file with the correct format for the model. In this CSV file, each row of the data is a single case (dataset) with a set of observed values for nodes in the model. First column of the CSV file is the dataset (case) ids which will be used to create a new dataset for each data row. All other columns are possible evidence variables whose headers follow the "node_id.network_id" format. Thus, each column represents a node in the BN and is defined by the node id and the id of the network to which it belongs.
+pyagena allows creation of batch cases based on a single model and multiple observation sets. Observations should be provided in a CSV file with the correct format for the model. In this CSV file, each row of the data is a single case (dataset) with a set of observed values for nodes in the model. First column of the CSV file is the dataset (case) ids which will be used to create a new dataset for each data row. All other columns are possible evidence variables whose headers follow the "network_id.node_id" format. Thus, each column represents a node in the BN and is defined by the node id and the id of the network to which it belongs. The column header for the first one (dataset names) can be anything, 'Case' is the header name when `create_csv_template()` is used.
 
 An example CSV format is as below:
 
@@ -908,16 +936,16 @@ An example CSV format is as below:
 <thead>
   <tr>
     <th>Case</th>
-    <th>node_one.network_one</th>
-    <th>node_two.network_one</th>
-    <th>cont_node.network_one</th>
-    <th>node_one.network_two</th>
-    <th>node_two.network_two</th>
+    <th>network_one.node_one</th>
+    <th>network_one.node_two</th>
+    <th>network_one.cont_node</th>
+    <th>network_two.node_one</th>
+    <th>network_two.node_two</th>
   </tr>
 </thead>
 <tbody>
   <tr>
-    <td>1</td>
+    <td>Case 1</td>
     <td>Negative</td>
     <td>True</td>
     <td>20</td>
@@ -925,7 +953,7 @@ An example CSV format is as below:
     <td>False<br></td>
   </tr>
   <tr>
-    <td>2</td>
+    <td>Case 2</td>
     <td>Positive<br></td>
     <td>True</td>
     <td></td>
@@ -933,7 +961,7 @@ An example CSV format is as below:
     <td>True</td>
   </tr>
   <tr>
-    <td>3</td>
+    <td>New Case</td>
     <td>Positive</td>
     <td>False</td>
     <td>18</td>
@@ -949,7 +977,9 @@ Once the model is defined in pyagena and the CSV file with the observations is p
 example_model.create_batch_cases("example_dataset.csv", update_model = True)
 ```
 
-This will create new datasets (cases) for each row of the dataset in the model, fill these datasets (cases) in with the observations using the values given in the dataset. If `update_model` is `True`, the python model will keep the new cases and observations. If `False`, the method will create a new .json file for the model with all the datasets (cases), save locally, and remove the newly added cases from the model. If there are NA values in the dataset, it will not fill in any observation for that specific node in that specific dataset (case).
+This will create new datasets (cases) for each row of the dataset in the model, fill these datasets (cases) in with the observations using the values given in the dataset. If `update_model` is `True`, the python model will keep the new cases and observations. If `False`, the method will create a new .json file for the model with all the datasets (cases), save locally, and remove the newly added cases from the model. The `update_model` parameter is `True` by default, unless specified otherwise. Missing values must be blank cells in the dataset. If there are missing values in the dataset, it will not fill in any observation for that specific node in that specific dataset (case).
+
+You can use `create_csv_template()` function on a Model object to create an empty .csv file with the correct format for all the nodes and networks in the model. You can then delete the columns for the nodes that are not observed.
 
 # 8. agena.ai Cloud with pyagena
 
@@ -1004,6 +1034,91 @@ If the calculation is successful, this function will update the python model (th
 
 The model calculation computation supports asynchronous request (polling) if the computation job takes longer than 10 seconds. The python client will periodically recheck the servers and obtain the results once the computation is finished (or timed out, whichever comes first).
 
+If you would like to see the calculation results in a .csv format, you can use the Model method `get_results()` to generate the output file.
+
+```python
+example_model.get_results()
+```
+
+or with a custom file name:
+
+```python
+example_model.get_results("example_output_file")
+```
+
+This will generate a .csv file with the following format:
+
+<table>
+<thead>
+  <tr>
+    <th>Case</th>
+    <th>Network</th>
+    <th>Node</th>
+    <th>State</th>
+    <th>Probability</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 1</td>
+    <td>State 1</td>
+    <td>0.2</td>
+  </tr>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 1</td>
+    <td>State 2</td>
+    <td>0.3</td>
+  </tr>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 1</td>
+    <td>State 3</td>
+    <td>0.5</td>
+  </tr>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 2</td>
+    <td>State 1</td>
+    <td>0.3</td>
+  </tr>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 2</td>
+    <td>State 2</td>
+    <td>0.7</td>
+  </tr>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 3</td>
+    <td>State 1</td>
+    <td>0.1</td>
+  </tr>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 3</td>
+    <td>State 2</td>
+    <td>0.8</td>
+  </tr>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 3</td>
+    <td>State 3</td>
+    <td>0.1</td>
+  </tr>
+</tbody>
+</table>
+
+
 ## 8.3 Sensitivity Analysis
 
 Sensitivity analysis is another cloud server operation for the logged in user instance. For the sensitivity analysis, first you need to crate a sensivity configuration object, using the `.create_sensitivity_config(...)` method of a Model. For example,
@@ -1012,7 +1127,7 @@ Sensitivity analysis is another cloud server operation for the logged in user in
 example_sens_config = example_model.create_sensitivity_config(
                       targetNode = "node_one",
                       sensitivityNodes = ["node_two","node_three"],
-                      report_settings = {"summaryStats" = ["mean", "variance"]},
+                      report_settings = {"summaryStats" : ["mean", "variance"]},
                       dataSet = "dataset_id",
                       network = "network_one")
 ```
@@ -1022,10 +1137,26 @@ Here, `targetNode` and `sensitivityNodes` parameters are mandatory for a sensiti
 Using the defined configuration object, now you can use the `sensitivity_analysis()` method of the logged in user instance to send the request to the server. For example,
 
 ```python
-example_user.sensitivity_analysis(example_model, example_sens_config)
+sa_results = example_user.sensitivity_analysis(example_model, example_sens_config)
 ```
 
-If successful, this will return a .json file for the results. The results json file contains raw results data for all analysis report options defined, such as tables, tornado graphs, and curve graphs.
+If successful, this will return a `dict` with some information about the process and the results. Unlike `calculate()`, this method is advised to assign to a variable for future analysis and use. The returned `dict` includes the following fields:
+
+* lastUpdated
+* version
+* log
+* uuid
+* debug
+* duration
+* messages
+* results
+* memory
+
+The results contains raw results data for all analysis report options defined, such as tables, tornado graphs, and curve graphs. To access the results:
+
+```python
+sa_results["results"]
+```
 
 The sensitivity analysis computation supports asynchronous request (polling) if the computation job takes longer than 10 seconds. The python client will periodically recheck the servers and obtain the results once the computation is finished (or timed out, whichever comes first).
 
@@ -1068,18 +1199,17 @@ passing on your developer license key as the input parameter.
 Once the local API is compiled and developer license is activated, you can use the local API directly with your models defined in python. To use the local API for calculations of a model created in python:
 
 ```python
-local_api_calculate(model, dataset, out_path)
+local_api_calculate(model, dataset_id)
 ```
 
-where the parameter `model` is a python Model object, `dataset` is the id of one of the datasets (cases) existing in the Model object, and `out_path` is the desired file path and the name of the output file to be generated with the result values. For example,
+where the parameter `model` is a python Model object and `dataset_id` is the id of one of the datasets (cases) existing in the Model object. For example,
 
 ```python
 local_api_calculate(model = example_model,
-                    dataset = "example_dataset_id",
-                    output = "./results/exampe_results.json")
+                    dataset_id = "example_dataset_id")
 ```
 
-This function will temporarily create the .cmpx file for the model and the separate .json file required for the dataset, and send them to the local API (cloned and compiled within the working directory), obtain the calculation result values and create the output file using the given path. The function also updates the python Model object with the calculation results (in addition to creating the separate results.json file in the directory).
+This function will temporarily create the .cmpx file for the model and the separate .json file required for the dataset, and send them to the local API (cloned and compiled within the working directory), obtain the calculation result values and update the python Model object with the calculation results.
 
 If you'd like to run multiple datasets in the same model in batch, you can use `local_api_batch_calculate()` instead. This function takes a python Model object as input and runs the calculation for each dataset in it, and fills in all the relevant result fields under each dataset. You can use this function as
 
@@ -1089,12 +1219,15 @@ local_api_batch_calculate(model = example_model)
 
 where `example_model` is a python Model object with multiple dataSets.
 
+If you would like to see the calculation results in a .csv format, you can use the Model method `get_results()` to generate the output file as described in [Section 8.2](#82-model-calculation).
+
+
 ## 9.3 Sensitivity Analysis with the local API
 
 You can also run a sensitivity analysis in the local API, using
 
 ```python
-local_api_sensitivity(model, sens_config, out_path)
+local_api_sensitivity_analysis(model, sens_config)
 ```
 
 Here the sens_config is created by the use of `.create_sensitivity_config(...)` method of a Model. For example: 
@@ -1103,20 +1236,19 @@ Here the sens_config is created by the use of `.create_sensitivity_config(...)` 
 example_sens_config = example_model.create_sensitivity_config(
                       targetNode = "node_one",
                       sensitivityNodes = ["node_two","node_three"],
-                      report_settings = {"summaryStats" = ["mean", "variance"]},
+                      report_settings = {"summaryStats" : ["mean", "variance"]},
                       dataSet = "dataset_id",
                       network = "network_one")
 ```
 
-And then,
+Note that, unlike `local_api_calculate()`, this function does not update the existing Model object but returns a new `dict` of results. So it's a good practice to assign the function to a variable for future analysis and use.
 
 ```python
-local_api_sensitivity(model = example_model,
-                      sens_config = example_sens_config,
-                      out_path = "./results/example_sa_results.json")
+sa_results = local_api_sensitivity_analysis(model = example_model,
+                      sens_config = example_sens_config)
 ```
 
-This function will temporarily create the .cmpx file for the model and the separate .json files required for the dataset and sensitivity analysis configuration file, and send them to the local API (cloned and compiled within the working directory), obtain the sensitivity analysis result values and create the output file using the given path. `local_api_sensitivity()` looks at the `dataSet` field of `sens_config` to determine which dataset to use, if the field doesn't exist, the default behaviour is to create a new dataset without any observations for the sensitivity analysis.
+This function will temporarily create the .cmpx file for the model and the separate .json files required for the dataset and sensitivity analysis configuration file, and send them to the local API (cloned and compiled within the working directory), obtain the sensitivity analysis result values and create the results `dict`. The returned `dict` includes the result values for displays such as sensitivity tables, tornado graphs, and curves. `local_api_sensitivity_analysis()` looks at the `dataSet` field of `sens_config` to determine which dataset to use, if the field doesn't exist, the default behaviour is to create a new dataset without any observations for the sensitivity analysis.
 
 # 10. pyagena Use Case Examples
 
@@ -1241,15 +1373,12 @@ Now the model is ready with all the information, we can export it to either a .j
 
 ```python
 # To create a local .cmpx file
-diet_model.to_cmpx("diet_model_example")
-#or
-diet_model.save_model_as(filetype="cmpx", filename="diet_model_example")
+diet_model.save_to_file("./diet_model_example.cmpx")
 
+# Or sending it to local agena.ai developer API for calculation
+local_api_calculate(diet_model, "Case 1")
 
-# To create a local .json file
-diet_model.to_json("diet_model_example")
-#or
-diet_model.save_model_as(filetype="json", filename="diet_model_example")
+# Or sending it to agena.ai Cloud for calculation
+user = login()
+user.calculate(diet_model, "Case 1")
 ```
-
-

@@ -1,4 +1,9 @@
-
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+    
 class Dataset():
     def __init__(self, id, observations = None, results=None):
          
@@ -12,7 +17,30 @@ class Dataset():
             self.results = results
         else:
             self.results = []
-    
+        
+        self._convert_to_dotdict()
+
+    def _convert_to_dotdict(self):
+        dot_obs = []
+
+        for ix, ob in enumerate(self.observations):
+            dot_obs.append(dotdict(ob))
+            for idx, ent in enumerate(ob["entries"]):
+                dot_obs[ix].entries[idx] = dotdict(ent)
+        
+        self.observations = dot_obs
+
+        dot_res = []
+
+        for ix, res in enumerate(self.results):
+            dot_res.append(dotdict(res))
+            dot_res[ix].summaryStatistics = dotdict(res["summaryStatistics"])
+            for dx, rv in enumerate(res["resultValues"]):
+                dot_res[ix].resultValues[dx] = dotdict(rv)
+        
+        self.results = dot_res
+        
+
     def __str__(self) -> str:
         if self.results is not None:
             if self.observations is not None:
@@ -39,3 +67,4 @@ class Dataset():
         this_ds["results"] = self.results
         json_dataset.append(this_ds)
         return json_dataset
+    

@@ -86,16 +86,15 @@ class login():
             if calculate_response.json()["status"]=="success":
                 if dataset is None:
                     model.datasets[0].results = calculate_response.json()["results"]
+                    model.dataset[0]._convert_to_dotdict()
                 else:
                     for ds in model.datasets:
                         if ds.id == dataset:
                             ds.results = calculate_response.json()["results"]
+                            ds._convert_to_dotdict()
         elif calculate_response.status_code == 202:           
             print(calculate_response.json()["messages"])
             print("Polling has started, polling for calculation results will update every 3 seconds")
-            if debug:
-                for db in calculate_response.json()["debug"]:
-                    print(db)
             
             polling_url = calculate_response.json()["pollingUrl"]
             poll_status = 202
@@ -121,10 +120,12 @@ class login():
                 if polled_response.json()["status"]=="success":
                     if dataset is None:
                         model.datasets[0].results = polled_response.json()["results"]
+                        model.datasets[0]._convert_to_dotdict()
                     else:
                         for ds in model.datasets:
                             if ds.id == dataset:
                                 ds.results = polled_response.json()["results"]
+                                ds._convert_to_dotdict()
                 
             else:
                 if debug:
@@ -160,12 +161,10 @@ class login():
                     print(db)
             
             if sa_response.json()["status"]=="success":
-                sa_results = sa_response.json()["results"]
-                filename = model.id + "_sensitivity_results"
-
-                with open(filename + ".json", "w") as outfile:
-                    json.dump(sa_results, outfile)
-                print("Sensitivity analysis results are saved to the directory")
+                sa_results = {}
+                fields = ["lastUpdated", "version", "log", "uuid", "debug", "duration", "messages", "results", "memory"]
+                for f in fields:
+                    sa_results[f] = sa_response.json()[f]
         
         elif sa_response.status_code == 202:
             print(sa_response.json()["messages"])
@@ -196,11 +195,10 @@ class login():
                         print(db)
 
                 if polled_response.json()["status"]=="success":
-                    sa_results = polled_response.json()["results"]
-                    filename = model.id + "_sensitivity_results"
-                    with open(filename + ".json", "w") as outfile:
-                        json.dump(sa_results, outfile)
-                    print("Sensitivity analysis results are saved to the directory")
+                    sa_results = {}
+                    fields = ["lastUpdated", "version", "log", "uuid", "debug", "duration", "messages", "results", "memory"]
+                    for f in fields:
+                        sa_results[f] = polled_response.json()[f]
                 
             else:
                 if debug:
@@ -213,3 +211,5 @@ class login():
                 for db in sa_response.json()["debug"]:
                     print(db)
             raise ValueError(sa_response.json()["messages"])
+        
+        return sa_results

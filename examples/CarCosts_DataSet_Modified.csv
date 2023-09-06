@@ -1,4 +1,4 @@
-Case,car_type.Car Costs_0,Fuel_price.Car Costs_0,Miles_per_year.Car Costs_0,Reliability.Car Costs_0
+Case,Car Costs_0.car_type,Car Costs_0.Fuel_price,Car Costs_0.Miles_per_year,Car Costs_0.Reliability
 new_car_one,Medium,3,10000,High
 new_car_two,,3,5000,Low
 new_car_three,Small,3,7500,Medium

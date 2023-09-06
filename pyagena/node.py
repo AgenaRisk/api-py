@@ -47,8 +47,16 @@ class Node():
                         self.states = ["0.0", "1.0"]
                     else:
                         self.states = states
-                if (self.type == "ContinuousInterval" or self.type == "IntegerInterval"):
-                    self.states = None                
+                if self.type == "ContinuousInterval":
+                    if states is None:
+                        self.states = ["(-Infinity, -1)", "[-1, 1)", "[1, Infinity)"]
+                    else:
+                        self.states = states
+                if self.type == "IntegerInterval":
+                    if states is None:
+                        self.states = ["(-Infinity, -1]", "[0, 4]"," [5, Infinity)"]
+                    else:
+                        self.states = states                
                 if self.type == "Boolean":
                     if states is None:
                         self.states = ["False", "True"]
@@ -108,8 +116,17 @@ class Node():
             return "Node: % s (% s)" % (self.name, self.type)
     
 
-    # adding parents
+    def set_states(self, states):
+        
+        previous_states = len(self.states)
 
+        self.states = states
+        if len(self.states) != previous_states:
+            self._reset_probabilities()
+            print("The node states are updated, the NPT values are reset to uniform because the number of states has changed")
+        else:
+            print("The node states are updated")
+            
     def add_parent(self, new_parent: "Node", from_cmpx=False):
 
         if new_parent.id == self.id:
@@ -227,19 +244,39 @@ class Node():
                 self.expressions = None
                 raise ValueError("One or more given partition parent is not a parent of the node {self.name}")
 
+    def _get_variable_names(self):
+        var_names = []
+        if len(self.variables)>0:
+            for vr in self.variables:
+                (k, v), = vr.items()
+                var_names.append(k)
+        
+        return var_names
+    
+    def _get_variable_value(self, variable_name):
+        if len(self.variables)>0:
+            for vr in self.variables:
+                (k, v), = vr.items()
+                if k == variable_name:
+                    variable_value = v
+        
+        return variable_value
 
     def set_variable(self, variable_name, variable_value, from_cmpx=False):
-        if variable_name in self.variables:
+        if variable_name in self._get_variable_names():
             raise ValueError("The node already has a variable (constant) with this name")
         else:
             self.variables.append({variable_name:variable_value})
             if not from_cmpx:
                 print("The variable (constant) is successfully added to the node")
 
-
     def remove_variable(self, variable_name):
-        if variable_name in self.variables:
-            self.variables.pop(variable_name)
+        if variable_name in self._get_variable_names():
+            for ix, vr in enumerate(self.variables):
+                (k, v), = vr.items()
+                if k == variable_name:
+                    self.variables.pop(ix)
+            #self.variables.pop(variable_name)
             print("The variable (constant) is removed from the node")
         else:
             raise ValueError(f"The node does not have a variable called {variable_name}")

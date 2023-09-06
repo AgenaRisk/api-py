@@ -67,6 +67,13 @@ class Network():
             
         return nodes_list
     
+    def get_node(self, node_id):
+          if node_id not in self._get_nodes():
+               raise ValueError(f"The model does not have a dataset with the id {node_id}")
+          
+          node = [n for n in self.nodes if n.id==node_id].pop()
+          return node
+    
     def __str__(self) -> str:
         if self.nodes is not None:
             return  "Network id: % s\nNetwork name: % s\nNetwork nodes: % s" % (self.id, self.name, ", ".join(self._get_nodes()))
