@@ -19,6 +19,16 @@ class Dataset():
             self.results = []
         
         self._convert_to_dotdict()
+    
+    def get_result(self, network_id, node_id):
+        result = [res for res in self.results if res.node == node_id and res.network == network_id]
+        if len(result) == 1:
+            return result.pop()
+        if len(result) == 0:
+            return None
+        
+    def enter_observation_to_dataset(self):
+        pass
 
     def _convert_to_dotdict(self):
         dot_obs = []
@@ -39,7 +49,6 @@ class Dataset():
                 dot_res[ix].resultValues[dx] = dotdict(rv)
         
         self.results = dot_res
-        
 
     def __str__(self) -> str:
         if self.results is not None:
@@ -67,4 +76,5 @@ class Dataset():
         this_ds["results"] = self.results
         json_dataset.append(this_ds)
         return json_dataset
+
     

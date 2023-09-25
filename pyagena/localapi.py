@@ -39,14 +39,14 @@ def local_api_activate_license(key):
     if platform == "win32":
         shell_command = '"mvn exec:java@activate \'-Dexec.args=\\"--keyActivate --key ' + key + '\\"\'"'
         command = 'powershell -command ' + shell_command
-        send_command = os.system(command)
+        send_command = subprocess.check_output(command)
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
         command = 'mvn exec:java@activate \'-Dexec.args="--keyActivate --key ' + key + '"\''
-        send_command = os.system(command)
+        send_command = subprocess.check_output(command)
 
     if send_command == 0:
-        full_response = str(subprocess.check_output(command))
+        full_response = str(send_command)
         already = "AgenaRisk already activated"
         if already in full_response:
             os.chdir(cur_wd)

@@ -306,7 +306,7 @@ When an existing parent is removed from a node, its NPT values and expressions a
 
 ### 4.1.4 `set_distr_type(new_distr_type)`
 
-A method to set the table type (`distr_type`) of a node. If a `Node` is `simulated`, its table type can be "Expression" or "Partitioned" - the latter is only if the node has discrete parent nodes. If a `Node` is `not simulated`, its table type can be "Manual", "Expression", or "Partitioned (if the node has parent nodes)".
+A method to set the table type (`distr_type`) of a node. If a `Node` is `simulated`, its table type can be "Expression" or "Partitioned" - the latter is only if the node has discrete parent nodes. If a `Node` is `not simulated`, its table type can be "Manual", "Expression", or "Partitioned (if the node has discrete parent nodes)".
 
 Changing the node's distribution type (table type) adjusts its `states`/`probabilities`/`expressions`` parameters accordingly.
 
@@ -995,7 +995,7 @@ The cloud operations use a python object called `login` to authenticate the user
 To create an account, visit https://portal.agena.ai. Once created, you can use your credentials in pyagena to access the servers.
 
 ```python
-example_login = login()
+example_user = login()
 ```
 
 If you give no parameters, you will be prompted to enter your username and password for authentication. Alternatively you can pass them as parameters to login constructor:
@@ -1006,6 +1006,13 @@ example_user = login(username, password)
 
 This will send a POST request to authentication server, and will create a logged in user instance (including access and refresh tokens) which will be used to authenticate further operations.
 
+You can choose to see either basic operation result messages or detailed debugging messages when you use the model calculation and sensitivity analysis functions after authentication. You can set the debug message option for the logged in cloud user with:
+
+```python
+example_user.set_debug(True)
+```
+
+
 ## 8.2 Model Calculation
 
 Using the login instance created, you can do further operations such as calculations and sensitivity analysis.
@@ -1014,7 +1021,6 @@ Using the login instance created, you can do further operations such as calculat
 
 * `model` is the python Model object
 * (optional) `dataset` is the id of the dataset that contains the set of observations (`.id` of one of the `.datasets` objects) if any. If the model has only one dataset (case) with observations, dataset needs not be specified (it is also possible to send a model without any observations).
-* (optional) `debug` is a boolean parameter which is false by default that enables extra debugging messages to be displayed in the console. The basic success/failure messages will be displayed in any case.
 
 Currently servers accept a single set of observations for each calculation, if the python model has multiple datasets (cases), you need to specify which dataset is to be used.
 
@@ -1157,6 +1163,8 @@ The results contains raw results data for all analysis report options defined, s
 ```python
 sa_results["results"]
 ```
+
+You can see the cloud API documentation for further information on the sensitivity analysis response [here (Manual/Tools: Sensitivity Analysis/Response)](https://agenarisk.atlassian.net/wiki/spaces/PROTO/pages/785711115/agena.ai+cloud+api+manual#agena.aicloudapimanual-Response.3).
 
 The sensitivity analysis computation supports asynchronous request (polling) if the computation job takes longer than 10 seconds. The python client will periodically recheck the servers and obtain the results once the computation is finished (or timed out, whichever comes first).
 

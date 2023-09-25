@@ -69,7 +69,7 @@ class Network():
     
     def get_node(self, node_id):
           if node_id not in self._get_nodes():
-               raise ValueError(f"The model does not have a dataset with the id {node_id}")
+               raise ValueError(f"The model does not have a node with the id {node_id}")
           
           node = [n for n in self.nodes if n.id==node_id].pop()
           return node
