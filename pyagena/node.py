@@ -1,6 +1,6 @@
 class Node():
 
-    def __init__(self, id=None, name=None, description=None, type=None, simulated=None, states=None):
+    def __init__(self, id, name=None, description=None, type=None, simulated=None, states=None):
         
         # initiating a new object with the id
         self.id = id

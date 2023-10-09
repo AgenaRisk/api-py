@@ -7,19 +7,22 @@ import pandas as pd
 import os
 
 class Model():         
-     def __init__(self, networks: list, id=None, datasets=None, network_links=None, settings=None):
+     def __init__(self, networks:list[Network]=None, id=None, datasets=None, network_links=None, settings=None):
           
-          self.networks = networks
+          if networks is not None:
+               self.networks = networks
+          else:
+               self.networks = []
 
           if settings is None:
                self.settings = {"parameterLearningLogging":False, "discreteTails":False, "sampleSizeRanked":5, "convergence":0.01, "simulationLogging":False, "iterations":50, "tolerance":1}
           else:
                self.settings = settings
 
-          if id is None:
-               self.id = self.networks[0].id + "_Model"
-          else:
+          if id is not None:
                self.id = id
+          else:
+               self.id = None
 
           if datasets is None:
                self.datasets = []
@@ -32,13 +35,21 @@ class Model():
           else:
                self.network_links = network_links
           
-
      def __str__(self) -> str:
-          return  "Model id: % s\nModel networks: % s" % (self.id, ", ".join(self._get_networks()))     
+          if self.id is not None:
+               return  "Model id: % s\nModel networks: % s" % (self.id, ", ".join(self._get_networks()))   
+          else:
+               return  "Model networks: % s" % (", ".join(self._get_networks()))   
      
      def __repr__(self) -> str:
-          return "Bayesian Model: % s (% s)" % (self.id, ", ".join(self._get_networks())) 
+          if self.id is not None:
+               return "Bayesian Model: % s (% s)" % (self.id, ", ".join(self._get_networks())) 
+          else:
+               return "Bayesian Model: (% s)" % (", ".join(self._get_networks())) 
 
+     def create_network(self, id, name=None, description=None):
+          this_net = Network(id=id, name=name, description=description)
+          self.add_network(this_net)
 
      def add_network(self, network):
           if network.id in self._get_networks():
@@ -47,8 +58,8 @@ class Model():
                self.networks.append(network)
                print("The network is successfully added to the model")
 
-
-     def remove_network(self, network):
+     def remove_network(self, id):
+          network = self.get_network(id)
           if network not in self.networks:
                raise ValueError("This network is not in the model")
           else:
@@ -77,12 +88,11 @@ class Model():
           dataset = [d for d in self.datasets if d.id==dataset_id].pop()
           return dataset
 
-     def add_network_link(self, source_network, source_node, target_network, target_node, link_type="Marginals", pass_state=None):
-
-          out_nw = [nid for nid in self.networks if nid.id == source_network].pop()
-          out_node = [nd for nd in out_nw.nodes if nd.id == source_node].pop()
-          in_nw = [nid for nid in self.networks if nid.id == target_network].pop()
-          in_node = [nd for nd in in_nw.nodes if nd.id == target_node].pop()
+     def add_network_link(self, source_network_id, source_node_id, target_network_id, target_node_id, link_type="Marginals", pass_state=None):
+          out_nw = self.get_network(source_network_id)
+          out_node = out_nw.get_node(source_node_id)
+          in_nw = self.get_network(target_network_id)
+          in_node = in_nw.get_node(target_node_id)
 
           if len(in_node.parents)>0:
                raise ValueError("The target node cannot be a node with parents in its network")
@@ -94,8 +104,8 @@ class Model():
                for nl in self.network_links:
                     targets.append(nl["targetNode"])
           
-          if target_node in targets:
-               raise ValueError("The required target node is already an target for an existing network link")
+          if target_node_id in targets:
+               raise ValueError("The required target node is already a target for an existing network link")
 
           num_list = ["ContinuousInterval", "IntegerInterval", "DiscreteReal"]
           num_intv_list = ["ContinuousInterval", "IntegerInterval"]
@@ -127,29 +137,29 @@ class Model():
                     if pass_state is None:
                          raise ValueError("Please enter the source node state to be passed on")
                     else:
-                         new_link = {"sourceNode":source_node,
-                                   "sourceNetwork":source_network,
-                                   "targetNode":target_node,
-                                   "targetNetwork":target_network,
+                         new_link = {"sourceNode":source_node_id,
+                                   "sourceNetwork":source_network_id,
+                                   "targetNode":target_node_id,
+                                   "targetNetwork":target_network_id,
                                    "passState":pass_state,
                                    "type":link_type}
                else:
-                    new_link = {"sourceNode":source_node,
-                                   "sourceNetwork":source_network,
-                                   "targetNode":target_node,
-                                   "targetNetwork":target_network,
+                    new_link = {"sourceNode":source_node_id,
+                                   "sourceNetwork":source_network_id,
+                                   "targetNode":target_node_id,
+                                   "targetNetwork":target_network_id,
                                    "type":link_type}
                
                self.network_links.append(new_link)
           else:
                raise ValueError("The link between source node and target node is not valid")                    
 
-     def remove_network_link(self, source_network, source_node, target_network, target_node):
+     def remove_network_link(self, source_network_id, source_node_id, target_network_id, target_node_id):
 
           if len(self.network_links)==0:
                raise ValueError("This model has no network links")
           
-          link_to_remove = [nl for nl in self.network_links if nl["sourceNode"]==source_node and nl["sourceNetwork"]==source_network and nl["targetNode"]==target_node and nl["targetNetwork"]==target_network].pop()
+          link_to_remove = [nl for nl in self.network_links if nl["sourceNode"]==source_node_id and nl["sourceNetwork"]==source_network_id and nl["targetNode"]==target_node_id and nl["targetNetwork"]==target_network_id].pop()
           
           if link_to_remove in self.network_links:
                self.network_links.remove(link_to_remove)
@@ -185,7 +195,7 @@ class Model():
           
           return ds_list
      
-     def enter_observation(self, network_id, node_id, value, dataset_id=None, variable_input=False):
+     def enter_observation(self, network_id, node_id, value, dataset_id=None, variable_name=None):
           if dataset_id is None:
                ds = self.datasets[0]
           else:
@@ -196,12 +206,9 @@ class Model():
           
           new_obs = {"node":node_id, "network":network_id, "entries":[]}
 
-          if variable_input:
-               new_obs["constantName"] = value
-               nw = self.get_network(network_id)
-               nd = nw.get_node(node_id)
-               vr_val = nd._get_variable_value(value)
-               new_obs["entries"].append({"weight":1, "value":vr_val})
+          if variable_name is not None:
+               new_obs["constantName"] = variable_name
+               new_obs["entries"].append({"weight":1, "value":value})
           else:
                if isinstance(value, list) and len(value)>1:
                     for vl in value:
@@ -214,7 +221,7 @@ class Model():
           
           if len(ds.observations)>0:
                obs_rewrite = False
-               if not variable_input:     
+               if variable_name is not None:     
                     for idx, obs in enumerate(ds.observations):
                          if (obs["node"] == node_id) & (obs["network"] == network_id):
                               obs_rewrite = True

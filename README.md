@@ -88,7 +88,7 @@ If it's not specified when creating a new node, the new node is "Boolean" by def
 
 ### 3.1.5 `parents`
 
-Other `Node` objects can be pointed as parents of a `Node` object. It is not recommended to modify this field manually, to add parents to a node, see the function `add_parent()`.
+Other `Node` objects can be pointed as parents of a `Node` object. It is not recommended to modify this field manually, to add parents to a node, see the node method `add_parent()` or network method `create_edge()`.
 
 Something to keep in mind: the parent-child relationship information is stored at `Node` level in the python environment thanks to this field, as opposed to the separate `links` field of a .cmpx/.json file for the agena.ai models. When importing or exporting .cmpx files you do not need to think about this difference, as the cmpx parser and writer functions handle the correct formats. This difference allows adding and removing `Node` objects as parents.
 
@@ -104,6 +104,8 @@ The table type of the node, it can be:
 * Expression
 * Partitioned
 
+To set the table (distribution) type of a node, see the node method `set_distr_type()` or the network method `set_node_distr_type()`.
+
 ### 3.1.8 `states`
 
 States of the node (if not simulated). If states are not specified, depending on the `type`, sensible default states are assigned. Default states for different node types are:
@@ -114,11 +116,13 @@ States of the node (if not simulated). If states are not specified, depending on
 * "IntegerInterval" node (if not simulated): "(-Infinity, -1]", "[0, 4]", "[5, Infinity)"
 * "ContinuousInterval" node (if not simulated): "(-Infinity, -1)", "[-1, 1)", "[1, Infinity)"
 
-And for a node with the table type (`distr_type`) "Expression", the default expression is: "Normal(0,1000000)"
+And for a node with the table type (`distr_type`) "Expression", the default expression is: "Normal(0,1000000)".
+
+To set new states to an existing nodes, see the node method `set_states()` or the network method `set_node_states()`.
 
 ### 3.1.9 `probabilities`
 
-If the table type (`distr_type`) of the node is "Manual", the node will have state probabilities, values in its NPT. This field is a list of lists containing these values. The length of the list depends on the node states and the number of its parents. To see how to set probability values for a node, see `set_probabilities()` function. 
+If the table type (`distr_type`) of the node is "Manual", the node will have state probabilities, values in its NPT. This field is a list of lists containing these values. The length of the list depends on the node states and the number of its parents. To see how to set probability values for a node, see the node method `set_probabilities()` or network method `set_node_probabilities()`. 
 
 ### 3.1.10 `expressions`
 
@@ -127,7 +131,7 @@ If the table type (`distr_type`) of the node is "Expression" or "Partitioned", t
 * If the node's table type is "Expression", the `expressions` field will be a list with a single expression.
 * If the node's table type is "Partitioned", the `expressions` field will be a list of as many expressions as the number of parent node states on which the expression is partitioned.
 
-To see how to set the expressions for a node, see `set_expressions()` function.
+To see how to set the expressions for a node, see the node method `set_expressions()` or the network method `set_node_expressions()`.
 
 Possible expressions for the node types are listed below:
 
@@ -198,7 +202,7 @@ Description, optional. If not specified, the string "New Network" is assigned to
 
 A list of `Node` objects which are in the network. These `Node` objects have their own fields which define them as explained above in this document.
 
-Note that `Network` objects do not have a `links` field unlike the agena.ai models. As explained in `Node.parents` section above, this information is stored in `Node` objects in the python environment. When importing a .cmpx model, the information in `links` field is used to populate `Node.parents` fields for each node. Similarly, when exporting to a .cmpx/.json file, the parent-child information in `Node.parents` field is used to create the `links` field of the `Network` field of the .cmpx/.json.
+Note that `Network` objects do have a `create_edge()` method but do not have a `links` field unlike the agena.ai models. As explained in `Node.parents` section above, this information is stored in `Node` objects in the python environment. When importing a .cmpx model, the information in `links` field is used to populate `Node.parents` fields for each node. Similarly, when exporting to a .cmpx/.json file, the parent-child information in `Node.parents` field is used to create the `links` field of the `Network` field of the .cmpx/.json.
 
 ## 3.3 `Dataset` objects 
 
@@ -222,15 +226,15 @@ These represent the overall BN. A single .cmpx file corresponds to a singe `Mode
 
 ## 3.4.1 `id`
 
-Id of the Model, optional. If not specified, the `id` of the first `Network` in the model's `networks` field is used to create a `Model.id`. 
+Id of the Model, optional. 
 
 ## 3.4.2 `networks`
 
-A list of all the `Network` objects that make up the model. This field is mandatory for creating a new `Model` object. 
+A list of all the `Network` objects that make up the model. This field will be populated with the `create_network()` method.
 
 ## 3.4.3 `datasets`
 
-Optional field for `Dataset` objects. When creating a new `Model`, it is possible to use predefined cases as long as their `DataSet.observations` field has matching `id`s with the nodes and networks in the model. If none is specified, by default a new `Model` object will come with an empty dataset called "Case 1", and new datasets (cases) can be added afterwards.
+Optional field for `Dataset` objects. When a new `Model` is created, it will have the default first dataset "Case 1", and it is possible to add new datasets to the model afterwards with the `create_dataset()` method.
 
 ## 3.4.4 `network_links`
 
@@ -272,6 +276,8 @@ example_model.create_dataset(example_case)
 
 ## 4.1 `Node` methods
 
+`Node` objects are created in a `Network` object (see Section 4.2). Once the nodes of a network are created, it is possible to modify them.
+
 Some `Node` fields can be modified with a direct access to the field. For example, to update the name or a description information of a `Node`, simply use:
 
 ```python
@@ -284,9 +290,9 @@ or
 example_node.description = "new node description"
 ```
 
-Because changing the name or description of a `Node` does not cause any compatibility issues. However, some fields such as table type or parents will have implications for other fields. Changing the node parents will change the size of its NPT, changing the node's table type from "Manual" to "Expression" will mean the state probabilities are now defined in a different way. Therefore, to modify such fields of a `Node`, use the corresponding method described below. These methods will ensure all the sensible adjustments are made when a field of a `Node` has been changed.
+Because changing the name or description of a `Node` does not cause any compatibility issues. However, some fields such as table type or parents will have implications for other fields. Changing the node parents will change the size of its NPT, changing the node's table type from "Manual" to "Expression" will mean the state probabilities are now defined in a different way. Therefore, to modify such fields of a `Node`, use the corresponding method described below. These methods will ensure all the sensible adjustments are made when a field of a `Node` has been changed. To modify the nodes, you can either use the node methods described in this section, or the network methods described in the next section which allow you to modify nodes in the network. Once a network and its nodes are created, it is recommended to use the network methods to modify its nodes.
 
-These are the methods `Node` objects can call for various purposes with their input parameters shown in parantheses:
+If you are directly working with `Node` objects, these are the methods `Node` objects can call for various purposes with their input parameters shown in parantheses:
 
 ### 4.1.1 `set_states(states)`
 
@@ -329,42 +335,76 @@ A method to remove one of the existing variables (constants) from a node, using 
 
 ## 4.2 `Network` methods
 
-As described above, `Node` objects can be created and manipulated outside a network in the python environment. Once they are defined, they can be added to a `Network` object. Alternatively, a `Network` object can be created first and then its nodes can be specified. The python environment gives the user freedom, which is different from agena.ai Modeller where it is not possible to have a node completely outside any network. Once a `Network` object is created, with or without nodes, the following methods can be used to modify and manipulate the object.
+A `Network` object is created in a `Model` object. Once a network of a model is created, the following methods can be used to modify and manipulate the object and its nodes.
 
-### 4.2.1 `add_node(new_node)`
+### 4.2.1 `create_node(id, name=optional, description=optional, type=optional, simulated=optional, states=optional)`
 
-A method to add a new `Node` object to the `nodes` field of a `Network` object. The input `new_node` is a `Node` object and it is added to the network if it's not already in it.
+A method to create a new `Node` object in a `Network` and add the new node to the `nodes` field of the `Network` object. The `id` of the new node is mandatory whereas `name`, `description`, `type`, `simulated`, and `states` are optional arguments. A new `Node` object is created with the arguments and added to the network if the network does not already have a node with the given id.
 
-Note that adding a new `Node` to the network does not automatically add its parents or children to the network. If the node has parents already defined, you need to add all the parent `Node`s separately to the network, too.
-
-### 4.2.2 `remove_node(old_node)`
+### 4.2.2 `remove_node(node_id)`
 
 A method to remove an existing `Node` object from the network. Note that removing a Node from a network doesn't automatically remove it from its previous parent-child relationships in the network. You need to adjust such relationships separately on `Node` level.
 
-### 4.2.3 `plot()`
+### 4.2.3 `get_node(node_id)`
+
+A method to access a `Node` object in a `Network`. The `Node` can be assigned to a variable and used.
+
+### 4.2.4 `create_edge(child_id, parent_id)`
+
+A method to add a parent `Node` to another `Node` in a `Network`. It takes node ids as parameters and runs the `add_parent()` method of a node.
+
+### 4.2.5 `remove_edge(child_id, parent_id)`
+
+A method to remove a parent `Node` from another `Node` in a `Network`. It takes node ids as parameters and runs the `remove_parent()` method of a node.
+
+### 4.2.6 `set_node_probabilities(node_id, new_probs, by_row=False)`
+
+A method to modify `Node`s in a `Network`. On the defined `Node` with the `node_id` parameter, it calls the node method `set_probabilities()`.
+
+### 4.2.7 `set_node_states`
+
+A method to modify `Node`s in a `Network`. On the defined `Node` with the `node_id` parameter, it calls the node method `set_states()`.
+
+### 4.2.8 `set_node_expressions`
+
+A method to modify `Node`s in a `Network`. On the defined `Node` with the `node_id` parameter, it calls the node method `set_expressions()`.
+
+### 4.2.9 `set_node_variable`
+
+A method to modify `Node`s in a `Network`. On the defined `Node` with the `node_id` parameter, it calls the node method `set_variable()`.
+
+### 4.2.10 `set_node_distr_type`
+
+A method to modify `Node`s in a `Network`. On the defined `Node` with the `node_id` parameter, it calls the node method `set_distr_type()`.
+
+### 4.2.11 `plot()`
 
 A method to plot the graphical structure of a BN network.
 
 ## 4.3 `Model` methods
 
-A `Model` object consists of networks, network links, datasets, and settings. A new `Model` object can be created with a network (or multiple networks). By default, it is created with a single empty dataset (scenario) called "Case 1". Following methods can be used to modify `Model` objects: 
+A `Model` object consists of networks, network links, datasets, and settings. Once a new `Model` is created, it is possible to create `Network`s and `Dataset`s in it. By default, a new `Model` object comes with a single empty dataset (case) called "Case 1". Following methods can be used to modify `Model` objects: 
 
-### 4.3.1 `add_network(new_network)`
+### 4.3.1 `create_network(id, name=None, description=None)`
 
-A method to add a new `Network` object to the `networks` field of a `Model` object. The input `new_network` is a `Network` object and it is added to the model if it's not already in it.
+A method to create a new `Network` object in a `Model` and add it to the `networks` field of the `Model` object. The input `id` is mandatory. The new `Network` object is added to the `Model` if the `Model` does not already have a `Network` with the given id.
 
-### 4.3.2 `remove_network(old_network)`
+### 4.3.2 `remove_network(id)`
 
-A method to remove an existing `Network` object from the model. Note that removing a Node from a network doesn't automatically remove its possible network links to other networks in the model. `network-links` field of a `Model` should be adjusted accordingly if needed.
+A method to remove an existing `Network` object from the model using its `id`. Note that removing a `Network` from a `Model` doesn't automatically remove its possible network links to other `Network`s in the model. `network-links` field of a `Model` should be adjusted accordingly if needed.
 
-### 4.3.4 `add_network_link(source_network, source_node, target_network, target_node, link_type, pass_state = optional)`
+### 4.3.3 `get_network(network_id)`
+
+A method to access a `Network` object in a `Model`. The `Network` can be assigned to a variable and used.
+
+### 4.3.4 `add_network_link(source_network_id, source_node_id, target_network_id, target_node_id, link_type, pass_state = optional)`
 
 This is the method to add links to a model between its networks. These links start from a "source node" in a network and go to a "target node" in another network. To create the link, the source and target nodes in the networks need to be specified together with the network they belong to (by the `Node` and `Network` `id`s). The input parameters are as follows:
 
-* `source_network` = `Network.id` of the network the source node belongs to
-* `source_node` = `Node.id` of the source node
-* `target_network` = `Network.id` of the network the target node belongs to
-* `target_node` = `Node.id` of the target node
+* `source_network_id` = `Network.id` of the network the source node belongs to
+* `source_node_id` = `Node.id` of the source node
+* `target_network_id` = `Network.id` of the network the target node belongs to
+* `target_node_id` = `Node.id` of the target node
 * `link_type` = a string of the link type name. If not specified, it is `Marginals`. It can be one of the following:
     * Marginals
     * Mean
@@ -382,7 +422,7 @@ Note that links between networks are allowed only when the source and target nod
 * Both nodes are the same type and neither is simulated and both have the same number of states
 * Source node is not numeric interval or discrete real and target node is simulated
 
-### 4.3.5 `remove_network_link(source_network, source_node,target_network, target_node)`
+### 4.3.5 `remove_network_link(source_network_id, source_node_id,target_network_id, target_node_id)`
 
 A method to remove network links, given the `id`s of the source and target nodes (and the networks they belong to).
 
@@ -398,7 +438,11 @@ It is possible to add multiple cases to a model. These cases are new `Dataset` o
 
 A method to remove an existing scenario from the model. Input parameter `dataset_id` is the string which is the `id` of a dataset (case).
 
-### 4.3.9 `enter_observation(network_id, node_id, value, dataset_id = optional, variable_input = False)`
+### 4.3.9 `get_dataset(dataset_id)`
+
+A method to access a `Dataset` object in a `Model`. The `Dataset` can be assigned to a variable and used.
+
+### 4.3.10 `enter_observation(network_id, node_id, value, dataset_id = optional, variable_input = False)`
 
 A method to enter observation to a model. To enter the observation to a specific dataset (case), the dataset id must be given as the input parameter `dataset`. If `dataset` is left blank, the entered observation will by default go to the first dataset (case) of the model (called "Case 1" by default). This means that if there is no extra datasets created for a model (which by default comes with "Case 1"), any observation entered will be set for this dataset (mimicking the behaviour of entering observation to agena.ai Modeller).
 
@@ -411,23 +455,23 @@ The observation is defined with the mandatory input parameters:
     * the array of multiple values and their weights (if it is soft evidence)
 * `variable_input` = a boolean parameter, set to `True` if the entered observation is a variable (constant) id for the node instead of an observed value.
 
-### 4.3.10 `remove_observation(network_id, node_id, dataset_id = optional)`
+### 4.3.11 `remove_observation(network_id, node_id, dataset_id = optional)`
 
 A method to remove a specific observation from the model. It requires the id of the node which has the observation to be removed and the id of the network the node belongs to.
 
-### 4.3.11 `clear_dataset_observations(dataset_id)`
+### 4.3.12 `clear_dataset_observations(dataset_id)`
 
 A method to clear all observations in a specific dataset (case) in the model.
 
-### 4.3.12 `clear_all_observations()`
+### 4.3.13 `clear_all_observations()`
 
 A method to clear all observations defined in a model. This function removes all observations from all datasets (cases).
 
-### 4.3.13 `import_results(results_file)`
+### 4.3.14 `import_results(results_file)`
 
 [TO BE IMPLEMENTED]
 
-### 4.3.14 `change_settings(setting arguments)`
+### 4.3.15 `change_settings(setting arguments)`
 
 A method to change model settings. The input parameters can be some or all of the `settings` fields. For example:
 
@@ -435,7 +479,7 @@ A method to change model settings. The input parameters can be some or all of th
 example_model.change_settings(convergence=0.001, iterations=75)
 ```
 
-### 4.3.15 `default_settings()`
+### 4.3.16 `default_settings()`
 
 A method to reset model settings back to default values. The default values for model settings are:
 
@@ -445,32 +489,32 @@ A method to reset model settings back to default values. The default values for 
 * iterations = 50
 * tolerance = 1
 
-### 4.3.16 `save_to_file(filename)`
+### 4.3.17 `save_to_file(filename)`
 
 A method to export the `Model` to a .cmpx or a .json file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a file in the correct format readable by agena.ai.
 
 Input parameter `filename` must have a file extension of '.cmpx' or '.json'.
 
-### 4.3.17 `get_results()`
+### 4.3.18 `get_results()`
 
 A method to generate a .csv file based on the calculation results a Model contains. See [Section 8.2](#82-model-calculation) for details.
 
-### 4.3.18 `from_cmpx(filepath = "/path/to/model/file.cmpx")`
+### 4.3.19 `from_cmpx(filepath = "/path/to/model/file.cmpx")`
 
 This is the class method to create a `Model` object from a .cmpx file. The method parses the .cmpx file and creates the python objects based on the model in the file. To see its use, see examples below.
 
-### 4.3.19 `create_batch_cases(input_data, update_model = True)`
+### 4.3.20 `create_batch_cases(input_data, update_model = True)`
 
 A method to import a series of cases (datasets) and their observations from a .csv file. If the .csv file is prepared in the correct format (see examples below), the method will do either of the following:
 
 * if `update_model` is `True` (default): it will create new datasets for each row in the csv file and enter all the non-missing observations in the row to the model. The model now contains new datasets (cases) with the observations.
 * if `update_model` is `False`: it will create new datasets for each row in the csv file and enter all the non-missing observations in the row to the model, and export the model to a local .json file, and reset the python `Model` object. Now the model does not contain new datasets (cases) but there's a locally saved .json model with all the datasets and observations.
 
-### 4.3.20 `create_csv_template()`
+### 4.3.21 `create_csv_template()`
 
 This method creates an empty CSV file with the correct format so that it can be filled in and used for `create_batch_bases()`. Note that this template includes every single node in the model, not all of which might be observable - you can delete the columns of the nodes which will not be observed.
 
-### 4.3.21 `create_sensitivity_config(...)`
+### 4.3.22 `create_sensitivity_config(...)`
 
 A method to create a sensitivity configuration object if a sensitivity analysis request will be sent to agena.ai Cloud servers or the local API. Its parameters are:
 
@@ -541,22 +585,45 @@ Once the python model is created from the imported .cmpx file, the `Model` objec
 
 # 6. Creating and Modifying a Model in python
 
-It is possible to create an agena.ai model entirely in python, without a .cmpx file to begin with. Once all the networks and nodes of a model are created and defined in python, you can export the model to a .cmpx or .json file to be used with agena.ai calculations and inference, locally or on agena.ai Cloud. In this section, creating a model is shown step by step, starting with nodes.
+It is possible to create an agena.ai model entirely in python, without a .cmpx file to begin with. Once all the networks and nodes of a model are created and defined in python, you can export the model to a .cmpx or .json file to be used with agena.ai calculations and inference, locally or on agena.ai Cloud. In this section, creating a model is shown step by step.
 
-## 6.1 Creating Nodes
+## 6.1 Creating a Model
 
-In the python environment, `Node` objects represent the nodes in BNs, and you can create `Node` objects before creating and defining any network. To create a new node, only its id (unique identifier) is mandatory, you can define some other optional fields upon creation if desired. A new node creation function takes the following parameters where id is the only mandatory one and all others are optional:
+You can create an empty model and modify its networks and nodes as described below. To create a new model object:
 
 ```python
-Node(id, name, description, type, simulated, states)
+example_model = Model()
+```
 
-# id parameter is mandatory
-# the rest is optional
+which will initiate a new model object with no networks and one default empty dataset (Case 1).
+
+## 6.2 Creating Networks
+
+You can create network(s) in the model with the `create_network()` method of a model. For example:
+
+```python
+example_model.create_network(id="example_net")
+```
+
+which will create a new network in the model with no nodes.
+
+## 6.3 Creating Nodes
+
+You can create nodes in a network with the `create_node()` method of a network. It is recommended to assign the network in a model to a new variable (with `get_network()`) for the ease of future operations. For example:
+
+```python
+net = example_model.get_network("example_net")
+```
+
+Now we can use the variable `net` to create and modify nodes in it:
+
+```python
+net.create_node(id="node_one")
 ```
 
 If the optional fields are not specified, the nodes will be created with the defaults. The default values for the fields, if they are not specified, are:
 
-* name = node id
+* name = node.id
 * description = "New Node"
 * simulated = False
 * type = 
@@ -567,7 +634,7 @@ If the optional fields are not specified, the nodes will be created with the def
     * if Ranked: ["Low", "Medium", "High"]
     * if DiscreteReal: ["0.0", "1.0"]
 
-Once a new node is created, depending on the type and number of states, other fields are given sensible default values too. These fields are distr_type (table type), probabilities or expressions. To specify values in these fields, you need to use the relevant set functions (explained above and shown later in this section). The default values for these fields are:
+Once a new node is created, depending on the type and number of states, other fields are given sensible default values too. These fields are distr_type (table type), probabilities or expressions. To specify values in these fields, you need to use the relevant set functions (described above and explained later). The default values for these fields are:
 
 * distr_type = 
     * if simulated: "Expression"
@@ -580,19 +647,19 @@ Once a new node is created, depending on the type and number of states, other fi
 Look at the following new node creation examples:
 
 ```python
-node_one = Node(id = "node_one")
+net.create_node(id = "node_one")
 ```
 
 ```python
-node_two = Node(id = "node_two", name = "Second Node")
+net.create_node(id = "node_two", name = "Second Node")
 ```
 
 ```python
-node_three = Node(id = "node_three", type = "Ranked")
+net.create_node(id = "node_three", type = "Ranked")
 ```
 
 ```python
-node_four = Node(id = "node_four", type = "Ranked", states = ["Very low", "Low", "Medium", "High", "Very high"])
+net.create_node(id = "node_four", type = "Ranked", states = ["Very low", "Low", "Medium", "High", "Very high"])
 ```
 
 Looking up some example values in the fields that define these nodes:
@@ -614,29 +681,51 @@ Looking up some example values in the fields that define these nodes:
 
 Note that probabilities will be a list (of size one) of lists even when there is no parent node.
 
-## 6.2 Modifying Nodes
+## 6.4 Modifying Nodes
 
-To update node information, some fields can be simply overwritten with direct access to the field if it does not affect other fields. These fields are node name and description.
+To modify nodes they can either be obtained with the network method `get_node()` and assigned to a new variable, or preferably the network methods which allow the node modification can be used. For the former, as an example:
+
+```python```
+node_one = net.get_node("node_one)
+```
+
+and now you can use the variable `node_one` to modify the node in the network.
+
+To update node information, some fields can be simply overwritten with direct access to the field if it does not affect other fields. These fields are node `name` and `description`. For example:
 
 ```python
 node_one.description = "first node we have created"
 ```
 
-Other fields can be specified with the relevant set functions. To update the node states, you can use `set_states()`:
+Other fields can be specified with the relevant set functions. For these, the node methods can directly be used, or preferably the network methods which allow the node modification can be used. When working on a network, it is recommended to use the network methods to modify its nodes, but below both alternatives are shown with examples.
+
+To update the node states, you can use `set_states()` on a node:
 
 ```python
 node_one.set_states(["Negative","Positive"])
 ```
 
-Note that the input for `set_states()` is a list of node names. If this method changes the number of node states, the NPT will be adjusted accordingly and state probabilities will reset to uniform.
+or `set_node_states()` on a network:
 
-To set probability values for a node with a manual table (distr_type), you can use `set_probabilities()` function:
+```python
+net.set_node_states("node_one", ["Negative", "Positive"])
+```
+
+Note that the input parameter for `set_states()` or `set_node_states()` is a list of node names. If this method changes the number of node states, the NPT will be adjusted accordingly and state probabilities will reset to uniform.
+
+To set probability values for a node with a manual table (distr_type), you can use `set_probabilities()` on a node:
 
 ```python
 node_one.set_probabilities([[0.2,0.8]])
 ```
 
-Note that the `set_probabilities()` function takes a list of lists as input, even when the node has no parents and its NPT has only one row of probabilities. If the node has parents, the NPT will have multiple rows which should be in the input list.
+or `set_node_probabilities()` on a network:
+
+```python
+net.set_node_probabilities("node_one", [[0.2,0.8]])
+```
+
+Note that the `set_probabilities()` or `set_node_probabilities()` take **a list of lists** as input, even when the node has no parents and its NPT has only one row of probabilities. If the node has parents, the NPT will have multiple rows which should be in the input list.
 
 Assume that `node_one` and `node_two` are the parents of `node_three` (how to add parent nodes is illustrated later in this section). Now assume that you want `node_three` to have the following NPT:
 
@@ -678,35 +767,47 @@ Assume that `node_one` and `node_two` are the parents of `node_three` (how to ad
 </tbody>
 </table>
 
-There are two ways to order the values in this table for the `set_probabilities()` function, using the boolean `by_rows` parameter. If you want to enter the values following the rows in agena.ai Modeller NPT rather than ordering them by the combination of parent states (columns), you can use `by_rows = True` where each element of the list is a row of the agena.ai Modeller NPT:
+There are two ways to order the values in this table for the `set_probabilities()` method, using the boolean `by_rows` parameter (which is set to `False` by default). If you want to enter the values following the rows in agena.ai Modeller NPT rather than ordering them by the combination of parent states (columns), you can use `by_rows = True` where each element of the list is a row of the agena.ai Modeller NPT:
 
 ```python
-node_three.set_probabilities([[0.1, 0.2, 0.3, 0.4], [0.4, 0.45, 0.6, 0.55], [0.5, 0.35, 0.1, 0.05]]), by_rows = True)
+net.set_node_probabilities("node_three", [[0.1, 0.2, 0.3, 0.4], [0.4, 0.45, 0.6, 0.55], [0.5, 0.35, 0.1, 0.05]], by_rows = True)
 ```
 
 If, instead, you want to define the NPT with the probabilities that add up to 1 (conditioned on the each possible combination of parent states), you can set `by_rows = False` as the following example:
 
 ```python
-node_three.set_probabilities([[0.1, 0.4, 0.5], [0.2, 0.45, 0.35], [0.3, 0.6, 0.1], [0.4, 0.55, 0.05]]), by_rows = False)
+net.set_node_probabilities("node_three", [[0.1, 0.4, 0.5], [0.2, 0.45, 0.35], [0.3, 0.6, 0.1], [0.4, 0.55, 0.05]], by_rows = False)
 ```
 
-Similarly, you can use `set_expressions()` function to define and update expressions for the nodes without Manual NPT tables. If the node has no parents, you can add a single expression:
+Similarly, you can use the node method `set_expressions()` or the network method `set_node_expressions()` to define and update expressions for the nodes without Manual NPT tables. If the node has no parents, you can add a single expression:
+
+```python
+net.set_node_expressions("example_node", ["TNormal(4,1,-10,10)"])
+```
+
+or
 
 ```python
 example_node.set_expressions(["TNormal(4,1,-10,10)"])
 ```
 
-Or if the node has parents and the expression is partitioned on the parents:
+If the node has parents and the expression is partitioned on the parents:
 
 ```python
-example_node.set_expressions(["Normal(90,10)", "Normal(110,15)", "Normal(120,30)"], partition_parents = ["parent_node"])
+net.set_node_expressions("example_node", ["Normal(90,10)", "Normal(110,15)", "Normal(120,30)"], partition_parents = ["parent_node_id"])
 ```
 
 In the former example the expression is a list of size one, and in the latter the expression is a list with three elements and the second parameter (`partition_parameters`) is a list which contains the ids of the parent nodes. In the second example, expression input has three elements based on the number of states of the parent node(s) on which the expression is partitioned.
 
-## 6.3 Adding and Removing Parent Nodes
+## 6.5 Creating/Removing Edges in a Network (Adding and Removing Parent Nodes)
 
-To add parents to a node, you can use `add_parent()` function. For example:
+When working with a network with nodes in it, you can add edges between nodes with `create_edge`:
+
+```python
+net.create_edge(child_id="node_three", parent_id="node_one")
+```
+
+This method calls the node method `add_parent()` to add the parent node information to the child node. To do this directly with nodes, you can alternatively use:
 
 ```python
 node_three.add_parent(node_one)
@@ -714,7 +815,13 @@ node_three.add_parent(node_one)
 
 This adds `node_one` to the parents list of `node_three`, and resizes the NPT of `node_three` (and resets the values to a discrete uniform distribution).
 
-To remove an already existing parent, you can use:
+To remove an already existing edge (parent-child relation) in the network, you can use:
+
+```python
+net.remove_edge(child_id="node_three", parent_id="node_one")
+```
+
+This method calls the node method `remove_parent()` on the child node. To use it directly:
 
 ```python
 node_three.remove_parent(node_one)
@@ -727,8 +834,10 @@ Below we follow the steps from creation of node_three to the parent modification
 * Creating node_tree with only type specified:
 
 ```python
-node_three = Node(id = "node_three", type = "Ranked")
+net.create_node(id = "node_three", type = "Ranked")
+node_three = net.get_node("node_three")
 ```
+
 * `node_three.parents`:
 
 ```python
@@ -759,6 +868,8 @@ node_three.set_probabilities([[0.7, 0.2, 0.1]])
 
 ```python
 node_three.add_parent(node_one)
+
+#or net.create_edge("node_three", "node_one")
 ```
 
 * `node_three.parents`:
@@ -783,6 +894,8 @@ node_three.add_parent(node_one)
 
 ```python
 node_three.add_parent(node_two)
+
+# or net.create_edge("node_three", "node_two")
 ```
 
 * `node_three.parents`:
@@ -805,91 +918,40 @@ node_three.add_parent(node_two)
 # NPT values for node_three are reset to discrete uniform
 ```
 
-## 6.4 Creating and Modifying Networks
+## 6.6 Modifying the Model
 
-BN Models contain networks, at least one or optionally multiple. If there are multiple networks in a model, they can be linked to each other with the use of input and output nodes. A `Network` object in python represents a network in a BN model. To create a new `Network` object, you need to specify its id (mandatory parameter), and you can also fill in the optional parameters:
+So far we initially created an "empty" model and populated it with a network and its nodes. It is possible to add multiple networks to the model:
 
 ```python
-Network(id, name, description, nodes)
-
-# id parameter is mandatory
-# the rest is optional
+example_model.create_network(id="network_one")
+example_model.create_network(id="network_two")
 ```
 
-Here clearly `nodes` field is the most important information for a network but you do not need to specify these on creation. You can choose to create an empty network and fill it in with the nodes afterwards with the use of `add_node()` function. Alternatively, if all (or some) of the nodes you will have in the network are already defined, you can pass them to the new `Network` object on creation.
+It is also possible to modify a model object regarding its network_links, datasets, and settings.
 
-Below is an example of network creation with the nodes added later:
-
-```python
-network_one = Network(id = "network_one")
-
-network_one.add_node(node_three)
-network_one.add_node(node_one)
-network_one.add_node(node_two)
-```
-
-Notice that when node_three is added to the network, its parents are not automatically included. So if a node has parents, you need to separately add them to the network, so that later on your model will not have discrepancies.
-
-The order in which nodes are added to a network is not important as long as all parent-child nodes are eventually in the network.
-
-Alternatively, you can create a new network with its nodes:
+Network links between networks of the model can be added with the `add_network_link()` method. For example:
 
 ```python
-network_two = Network(id = "network_two", nodes = [node_one, node_two, node_three])
-```
-
-Or you can create the network with some nodes and add more nodes later on:
-
-```python
-network_three = Network(id = "network_three", nodes = [node_one, node_three])
-
-network_three.add_node(node_two)
-```
-
-To remove a node from a network, you can use `remove_node()` function. Again keep in mind that removing a node does not automatically remove all of its parents from the network. For example,
-
-```python
-network_three.remove_node(node_three)
-```
-
-## 6.5 Creating and Modifying the Model
-
-BN models consist of networks, the links between networks, and datasets (scenarios). Only the networks information is mandatory to create a new `Model` object in python. The other fields can be filled in afterwards. The new model creation function is:
-
-```python
-Model(id, networks, dataSets, networkLinks)
-
-# networks parameter is mandatory
-# the rest is optional
-```
-
-For example, you can create a model with the networks defined above:
-
-```python
-example_model = Model(networks = [network_one])
-```
-
-Note that even when there is only one network in the model, the input has to be a list. Networks in a model can be modified with `add_network()` and `remove_network()` functions:
-
-```python
-example_model.add_network(network_two)
-```
-
-```python
-example_model.remove_network(network_two)
-```
-
-Network links between networks of the model can be added with the `add_network_link()` function. For example:
-
-```python
-example_model.add_network_link(source_network = network_one, source_node = node_three, target_network = network_two, target_node = node_three, link_type = "Marginals")
+example_model.add_network_link(source_network_id = "network_one", source_node_id = "node_three", target_network_id = "network_two", target_node_id = "node_three", link_type = "Marginals")
 ```
 
 For link_type options and allowed network link rules, see `add_network_link()` in the previous section.
 
+You can remove an existing network link with `remove_network_link()` method:
+
+```python
+example_model.remove_network_link(source_network_id = "network_one", source_node_id = "node_three", target_network_id = "network_two", target_node_id = "node_three")
+```
+
+or you can remove all existing network links in a model with
+
+```python
+example_model.remove_all_network_links()
+```
+
 When a new model is created, it comes with a single dataset (case) by default. See next section to see how to add observations to this dataset (case) or add new datasets (cases).
 
-## 6.6 Creating Datasets (Cases) and Entering Observation
+## 6.7 Creating Datasets (Cases) and Entering Observation
 
 To enter observations to a Model (which by default has one single case), use the `enter_observation()` function. You need to specify the node (and the network it belongs to) and give the value (one of the states if it's a discrete node, a sensible numerical value if it's a continuous node):
 
@@ -911,7 +973,7 @@ Once added, you can enter observation to the new dataset (case) if you specify t
 example_model.enter_observation(dataset_id = "Case 2", node_id = node_three, network_id = network_one, value = "Medium")
 ```
 
-## 6.7. Exporting a Model to .cmpx or .json
+## 6.8 Exporting a Model to .cmpx or .json
 
 Once a python model is defined fully and it is ready for calculations, you can export it to a .cmpx or a .json file:
 
@@ -924,7 +986,6 @@ or
 ```python
 example_model.save_to_file("example_model.json")
 ```
-
 
 # 7. Creating Batch Cases for a Model in python
 
@@ -1262,29 +1323,94 @@ This function will temporarily create the .cmpx file for the model and the separ
 
 In this section, some use case examples of pyagena environment are shown. 
 
-## 10.1 Diet Experiment Model
+## 10.1 Asia BN Model
+
+This is a BN which calculates the risk of certain medical conditions such as tuberculosis, lung cancer, and bronchitis from two casual factors - smoking and whether the patient has been to Asia recently. Additionally two other pieces of evidence are available: whether the patient is suffering from dyspnoea (shortness of breath) and whether a positive or negative X-ray test result is available.
+
+We can start with creating the model:
+
+```python
+asia = Model()
+```
+
+Now create a network in this model (and assign it to a variable for ease of further operations):
+
+```python
+asia.create_network(id="asia_net")
+net = asia.get_network("asia_net")
+```
+
+Now we can add the nodes to the network:
+
+```python
+net.create_node(id="A", name="Visit to Asia?")
+net.create_node(id="S", name="Smoker?")
+
+net.create_node(id="T", name="Has tuberculosis")
+net.create_node(id="L", name="Has lung cancer")
+net.create_node(id="B", name="Has bronchitis")
+
+net.create_node(id="TBoC", name="Tuberculosis or cancer")
+
+net.create_node(id="X", name="Positive X-ray?")
+net.create_node(id="D", name="Dyspnoea?")
+```
+
+All the nodes are binary so we do not need to specify the type or states. Then we can add the edges to the network between nodes (adding relevant nodes as parents to the child nodes):
+
+```python
+net.create_edge(child_id="T", parent_id="A")
+net.create_edge(child_id="L", parent_id="S")
+net.create_edge(child_id="B", parent_id="S")
+net.create_edge(child_id="TBoC", parent_id="T")
+net.create_edge(child_id="TBoC", parent_id="L")
+net.create_edge(child_id="X", parent_id="TBoC")
+net.create_edge(child_id="D", parent_id="TBoC")
+net.create_edge(child_id="D", parent_id="B")
+```
+
+At the moment all nodes have default uniform NPTs, we can define the NPT values:
+
+```python
+net.set_node_probabilities(node_id="A", new_probs=[[0.99, 0.01]])
+net.set_node_probabilities(node_id="T", new_probs=[[0.99, 0.01],[0.95, 0.05]])
+net.set_node_probabilities(node_id="L", new_probs=[[0.9, 0.1], [0.99, 0.01]])
+net.set_node_probabilities(node_id="B", new_probs=[[0.7, 0.3], [0.4, 0.6]])
+net.set_node_probabilities(node_id="TBoC", new_probs=[[1, 0], [0, 1], [0, 1], [0, 1]])
+net.set_node_probabilities(node_id="X", new_probs=[[0.95, 0.05], [0.02, 0.98]])
+net.set_node_probabilities(node_id="D", new_probs=[[0.9, 0.1], [0.2, 0.8], [0.3, 0.7], [0.1, 0.9]])
+```
+
+Now we can choose to use the model in any possible way: exporting to a .cmpx file for agena.ai modeller, sending it to agena.ai cloud, or sending it to the local agena.ai developer API for calculations. For example:
+
+```python
+asia.save_to_file("asia_bn.json")
+```
+
+## 10.2 Diet Experiment Model
 
 This is a BN which uses experiment observations to estimate the parameters of a distribution. In the model structure, there are nodes for the parameters which are the underlying parameters for all the experiments and the observed values inform us about the values for these parameters. The model in agena.ai Modeller is given below:
 
 ![Diet Experiment Image](https://resources.agena.ai/materials/repos/r_diet_image.png)
 
-In this section we will create this model entirely in RAgena environment. We can start with creating first four nodes. 
-
-Mean and variance nodes:
+In this section we will create this model entirely in pyagena. We can start with creating an empty model and create the network in it:
 
 ```python
-from node import Node
-from network import Network
-from dataset import Dataset
-from model import Model
+diet = Model()
 
-#First we create the "mean" and "variance" nodes
+diet.create_network("Hierarchical_Normal_Model_1")
+net = diet.get_network("Hierarchical_Normal_Model_1")
+```
+Now we can add nodes to the network. Let's start with mean and variance nodes:
 
-mean = Node(id="mean", simulated=True)
-mean.set_expressions(["Normal(0.0,100000.0)"])
+```python
+#Creating mean and variance nodes
 
-variance = Node(id="variance", simulated=True)
-variance.set_expressions(["Uniform(0.0,50.0)"])
+net.create_node(id="mean", simulated=True)
+net.set_node_expressions(node_id="mean", ["Normal(0.0,100000.0)"])
+
+net.create_node(id="variance", simulated=True)
+net.set_node_expressions(node_id="variance", ["Uniform(0.0,50.0)"])
 ```
 
 Common variance and tau nodes:
@@ -1292,12 +1418,12 @@ Common variance and tau nodes:
 ```python
 #Now we create the "common variance" and its "tau" parameter nodes
 
-tau = Node(id="tau", simulated=True)
-tau.set_expressions(["Gamma(0.001,1000.0)"])
+net.create_node(id="tau", simulated=True)
+net.set_node_expressions(node_id="tau", ["Gamma(0.001,1000.0)"])
 
-common_var = Node(id="common_var", name="common variance", simulated=True)
-common_var.add_parent(tau)
-common_var.set_expressions(["Arithmetic(1.0/tau)"])
+net.create_node(id="common_var", name="common variance", simulated=True)
+net.create_edge(child_id="common_var", parent_id="tau")
+net.set_node_expressions(node_id="common_var", ["Arithmetic(1.0/tau)"])
 ```
 
 Now we can create the four mean nodes, using a for loop and list of `Node`s:
@@ -1309,11 +1435,13 @@ mean_names = ["A", "B", "C", "D"]
 means_list = []
 
 for mn in mean_names:
-    this_mean = Node(id="mean" + mn, name="mean " + mn)
-    this_mean.add_parent(mean)
-    this_mean.add_parent(variance)
-    this_mean.set_expressions(["Normal(mean,variance)"])
-    means_list.append(this_mean)
+    this_id = "mean" + mn
+    this_name = "mean " + mn
+    net.create_node(id=this_id, name=this_name)
+    net.create_edge(child_id=this_id, parent_id="mean")
+    net.create_edge(child_id=this_id, parent_id="variance")
+    net.set_node_expressions(node_id=this_id, ["Normal(mean,variance)"])
+    means_list.append(this_id)
 ```
 
 Now we can create the experiment nodes, based on the number of observations which will be entered:
@@ -1327,41 +1455,13 @@ observations = [[62, 60, 63, 59],
                 [68, 66, 71, 67, 68, 68],
                 [56, 62, 60, 61, 63, 64, 63, 59]]
 
-obs_nodes_list = []
-
 for i, (obs, mn) in enumerate(zip(observations, means_list)):
     for j, ob in enumerate(obs):
-        this_obs = Node(id="y"+str(i)+str(j), simulated=True)
-        this_obs.add_parent(common_var)
-        this_obs.add_parent(mn)
-        this_obs.set_expressions(["Normal("+mn.id+",common_var)"])
-        obs_nodes_list.append(this_obs)
-```
-
-We can create a network for all the nodes:
-
-```python
-# Creating the network for all the nodes
-
-diet_network = Network(id = "Hierarchical_Normal_Model_1",
-                       name = "Hierarchical Normal Model")
-```
-
-And add all the nodes to this network:
-
-```python
-# Adding all the nodes to the network
-
-for nd in [mean, variance, tau, common_var, *means_list, *obs_nodes_list]:
-    diet_network.add_node(nd)
-```
-
-Now we can create a model with this network:
-
-```python
-# Creating a model with the network
-
-diet_model = Model(id="Diet_Experiment_Model", networks=[diet_network])
+        this_id = "y"+str(i)+str(j)
+        net.create_node(id=this_id, simulated=True)
+        net.create_edge(child_id= this_id, parent_id="common_var")
+        net.create_edge(child_id= this_id, parent_id=mn)
+        net.set_node_expressions(node_id=this_id, ["Normal("+mn+",common_var)"])
 ```
 
 We enter all the observation values to the nodes:
@@ -1372,9 +1472,9 @@ We enter all the observation values to the nodes:
 for i, obs in enumerate(observations):
     for j, ob in enumerate(obs):
         this_node_id = "y" + str(i) + str(j)
-        diet_model.enter_observation(node_id=this_node_id,
-                                     network_id=diet_model.networks[0].id,
-                                     value=ob)
+        diet_model.enter_observation(network_id=net.id,
+        node_id=this_node_id,
+        value=ob)
 ```
 
 Now the model is ready with all the information, we can export it to either a .json or a .cmpx file for agena.ai Modeller calculations, send it to agena.ai Cloud or to local agena.ai developer API.

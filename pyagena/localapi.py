@@ -37,12 +37,13 @@ def local_api_activate_license(key):
     os.chdir("./api/")
 
     if platform == "win32":
-        shell_command = '"mvn exec:java@activate \'-Dexec.args=\\"--keyActivate --key ' + key + '\\"\'"'
-        command = 'powershell -command ' + shell_command
+
+        command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyActivate --key ' + key + '`\\"\\""'
         send_command = subprocess.check_output(command)
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
-        command = 'mvn exec:java@activate \'-Dexec.args="--keyActivate --key ' + key + '"\''
+
+        command = 'mvn exec:java@activate -Dexec.args="--keyActivate --key' + key + '"'
         send_command = subprocess.check_output(command)
 
     if send_command == 0:
@@ -57,7 +58,6 @@ def local_api_activate_license(key):
     else:
         os.chdir(cur_wd)
         raise ValueError("License key activation failed")
-
 
 def local_api_calculate(model, dataset_id):
     cur_wd = os.getcwd()

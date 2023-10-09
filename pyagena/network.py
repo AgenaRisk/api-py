@@ -45,6 +45,35 @@ class Network():
         plt.draw()
         plt.show()
 
+    def create_node(self, id, name=None, description=None, type=None, simulated=None, states=None):
+        this_node = Node(id=id, name=name, description=description, type=type, simulated=simulated, states=states)
+        self.add_node(this_node)
+
+    def create_edge(self, child, parent):
+        child_node = self.get_node(child)
+        parent_node = self.get_node(parent)
+        child_node.add_parent(parent_node)
+
+    def set_node_probabilities(self, node_id, new_probs, by_row=False):
+        node = self.get_node(node_id)
+        node.set_probabilities(new_probs=new_probs, by_row=by_row)
+
+    def set_node_states(self, node_id, states):
+        node = self.get_node(node_id)
+        node.set_states(states)
+
+    def set_node_expressions(self, node_id, expressions, partitioned_parents=None, from_cmpx=False):
+        node = self.get_node(node_id)
+        node.set_expressions(expressions=expressions, partitioned_parents=partitioned_parents, from_cmpx=from_cmpx)
+    
+    def set_node_variable(self, node_id, variable_name, variable_value, from_cmpx=False):
+        node = self.get_node(node_id)
+        node.set_variable(variable_name=variable_name, variable_value=variable_value, from_cmpx=from_cmpx)
+
+    def set_node_distr_type(self, node_id, distr_type, from_cmpx=False):
+        node = self.get_node(node_id)
+        node.set_distr_type(distr_type=distr_type, from_cmpx=from_cmpx)
+
     def add_node(self, new_node: Node):
         if new_node.id in self._get_nodes():
             raise ValueError("There is already a node in the network with this id")
@@ -52,10 +81,11 @@ class Network():
             self.nodes.append(new_node)
             print(f"The node {new_node.name} is successfully added to the network. If {new_node.name} has any parent nodes, make sure to add them to the network separately")
 
-    def remove_node(self, old_node: Node):  
+    def remove_node(self, node_id):  
+        old_node = self.get_node(node_id)
         if old_node in self.nodes:
             self.nodes.remove(old_node)
-            print(f"The node {old_node.name} is successfully removed from the network. If {old_node.name} had any child nodes in the network, make sure to adjust their parents accordingly")
+            print(f"The node {node_id} is successfully removed from the network. If {node_id} had any child nodes in the network, make sure to adjust their parents accordingly")
         else:
             raise ValueError("This node is not in the network")
 
@@ -67,7 +97,7 @@ class Network():
             
         return nodes_list
     
-    def get_node(self, node_id):
+    def get_node(self, node_id) -> Node:
           if node_id not in self._get_nodes():
                raise ValueError(f"The model does not have a node with the id {node_id}")
           
