@@ -362,16 +362,17 @@ class Model():
           filename = self.id+"_Data.csv"
           test.to_csv(filename)
 
-     def import_results(self, file_path):
+     def _import_results(self, file_path):
           with open(file_path, "r") as file:
                results_string = file.read()
-          results = json.loads(results_string)[0]["results"]
-          dataset_id =   json.loads(results_string)[0]["id"]
-          for ds in self.datasets:
-               if ds.id == dataset_id:
-                    ds.results = results
-                    ds._convert_to_dotdict()
-                    print(f"Results are successfully imported to case {ds.id}")
+          all_results = json.loads(results_string)
+          for res in all_results:
+               results = res["results"]
+               dataset_id = res["id"]
+               dataset = self.get_dataset(dataset_id)
+               dataset.results = results
+               dataset._convert_to_dotdict()
+               print(f"Results are successfully imported to case {dataset.id}")
 
      def get_results(self, filename=None):
 
@@ -392,6 +393,26 @@ class Model():
           for fld in kwargs:
                sens_config[fld] = kwargs[fld]
           return sens_config
+
+     def _ds_to_json(self, dataset_ids = None):
+          json_dataset = []
+          if dataset_ids is None:
+               for ds in self.datasets:
+                    this_ds = {}
+                    this_ds["id"] = ds.id
+                    this_ds["observations"] = ds.observations
+                    this_ds["results"] = ds.results
+                    json_dataset.append(this_ds)
+          else:
+               for dsid in dataset_ids:
+                    ds = self.get_dataset(dsid)
+                    this_ds = {}
+                    this_ds["id"] = ds.id
+                    this_ds["observations"] = ds.observations
+                    this_ds["results"] = ds.results
+                    json_dataset.append(this_ds)
+          
+          return json_dataset
 
      @classmethod
      def from_cmpx(cls, filename):

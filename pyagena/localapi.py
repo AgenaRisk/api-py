@@ -59,42 +59,54 @@ def local_api_activate_license(key):
         os.chdir(cur_wd)
         raise ValueError("License key activation failed")
 
-def local_api_calculate(model, dataset_id):
+def local_api_calculate(model:Model, dataset_ids:list[str]=None, out = None, use_cache = False):
     cur_wd = os.getcwd()
     os.chdir("./api/")
     
     tempdir = tempfile.TemporaryDirectory()
 
-    for ds in model.datasets:
-        if ds.id == dataset_id:
-            data_json = ds._to_json()
+    if dataset_ids is not None:
+        data_json = model._ds_to_json(dataset_ids)
+    else:
+        data_json = model._ds_to_json() #if dataset ids are not specified, all datasets in the model are calculated
         
     if platform == "win32":
-        model_path = tempdir.name + "\\" + model.id + ".cmpx"
-        data_path = tempdir.name + "\\" + data_json[0]["id"] + ".json"
-        out_path = tempdir.name + "\\" + model.id + "_out.json"
+        model_path = tempdir.name + "\\" + data_json[0]["id"] + "_model.cmpx"
+        data_path = tempdir.name + "\\" + data_json[0]["id"] + "_dataset.json"
 
         model_file = model.save_to_file(model_path)
         with open(data_path, "w") as outfile:
             json.dump(data_json, outfile)
 
-        command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\'`\\"\\""'
+        if not use_cache:
+            out_path = tempdir.name + "\\" + data_json[0]["id"] + "_output.json"
+            command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\'`\\"\\""'
+
+        else:
+            out_path = out
+            command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache`\\"\\""'
+
         send_command = os.system(command)
     
     elif platform == "darwin" or platform == "linux" or platform == "linux2":       
-        model_path = tempdir.name + "/" + model.id + ".cmpx"
-        data_path = tempdir.name + "/" + data_json[0]["id"] + ".json"
-        out_path = tempdir.name + "/" + model.id + "_out.json"
+        model_path = tempdir.name + "/" + data_json[0]["id"] + "_model.cmpx"
+        data_path = tempdir.name + "/" + data_json[0]["id"] + "_dataset.json"
 
         model_file = model.save_to_file(model_path)
         with open(data_path, "w") as outfile:
             json.dump(data_json, outfile)
 
-        command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\'"'
+        if not use_cache:
+            out_path = tempdir.name + "/" + data_json[0]["id"] + "_output.json"
+            command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\'"'
+        else:
+            out_path = out
+            command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache"'
+
         send_command = os.system(command)
 
     if send_command == 0:
-        model.import_results(out_path)
+        model._import_results(out_path)
         print("The calculation is completed, the dataset in the model now contains new calculation results")
         os.chdir(cur_wd)
     
@@ -102,16 +114,16 @@ def local_api_calculate(model, dataset_id):
         os.chdir(cur_wd)
         raise ValueError("Calculation failed")
 
-def local_api_sensitivity_analysis(model, sens_config):
+def local_api_sensitivity_analysis(model:Model, sens_config):
     cur_wd = os.getcwd()
     os.chdir("./api/")
 
     tempdir = tempfile.TemporaryDirectory()
 
     if platform == "win32":
-        model_path = tempdir.name + "\\" + model.id + ".cmpx"
-        config_path = tempdir.name + "\\" + model.id + "_sens_config.json"
-        out_path = tempdir.name + "\\" + model.id + "_out.json"
+        model_path = tempdir.name + "\\" + "model.cmpx"
+        config_path = tempdir.name + "\\" + "sens_config.json"
+        out_path = tempdir.name + "\\" + "output.json"
 
         model_file = model.save_to_file(model_path)
         with open(config_path, "w") as outfile:
@@ -122,9 +134,9 @@ def local_api_sensitivity_analysis(model, sens_config):
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
         
-        model_path = tempdir.name + "/" + model.id + ".cmpx"
-        config_path = tempdir.name + "/" + model.id + "_sens_config.json"
-        out_path = tempdir.name + "/" + model.id + "_out.json"
+        model_path = tempdir.name + "/" + "model.cmpx"
+        config_path = tempdir.name + "/" + "sens_config.json"
+        out_path = tempdir.name + "/" + "output.json"
 
         model_file = model.save_to_file(model_path)
         with open(config_path, "w") as outfile:
