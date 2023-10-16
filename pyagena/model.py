@@ -81,7 +81,7 @@ class Model():
           network = [n for n in self.networks if n.id==network_id].pop()
           return network
 
-     def get_dataset(self, dataset_id):
+     def get_dataset(self, dataset_id) -> Dataset:
           if dataset_id not in self._get_datasets():
                raise ValueError(f"The model does not have a dataset with the id {dataset_id}")
               
@@ -171,20 +171,20 @@ class Model():
           self.network_links = []
           print("All network links are removed from the model")
 
-     def create_dataset(self, dataset_id, from_cmpx=False):
-          new_ds = Dataset(id=dataset_id)
+     def create_dataset(self, dataset_id, observations = None, from_cmpx=False):
+          new_ds = Dataset(id=dataset_id, observations=observations)
           self.datasets.append(new_ds)
           if not from_cmpx:
-               print("The dataset is successfully created")
+               print(f"The dataset {dataset_id} is successfully created")
 
      def remove_dataset(self, dataset_id, from_cmpx=False):
           if dataset_id not in self._get_datasets():
-               raise ValueError("This dataset does not exist in the model")
+               raise ValueError(f"The dataset {dataset_id} does not exist in the model")
 
           del_ds = self.get_dataset(dataset_id)
           self.datasets.remove(del_ds)
           if not from_cmpx:
-               print("The dataset is successfully removed from the model")
+               print(f"The dataset {dataset_id} is successfully removed from the model")
 
      def _get_datasets(self):
           ds_list = []
@@ -221,7 +221,7 @@ class Model():
           
           if len(ds.observations)>0:
                obs_rewrite = False
-               if variable_name is not None:     
+               if variable_name is None:     
                     for idx, obs in enumerate(ds.observations):
                          if (obs["node"] == node_id) & (obs["network"] == network_id):
                               obs_rewrite = True
@@ -334,26 +334,38 @@ class Model():
           json_model = {"model":{"settings":json_settings, "dataSets":json_datasets, "links": json_network_links, "networks": json_networks}}
           return json.loads(json.dumps(json_model))
 
-     def create_batch_cases(self, data, update_model=True):
-          data = pd.read_csv(data, index_col="Case")
+     def import_data(self, filename):
+          if os.path.splitext(filename)[1] == ".csv":
+               data = pd.read_csv(filename)
+               data = data.astype({data.columns[0]:"str"})
+               data = data.set_index(data.columns[0])
 
-          for ix, row in data.iterrows():
-               ds_id = ix
-               self.create_dataset(ix, from_cmpx=True)
-               for idx, cl in enumerate(data.columns):
-                    this_net = cl.split(".")[0]
-                    this_node = cl.split(".")[1]
-                    if not pd.isna(row[idx]):     self.enter_observation(network_id=this_net, node_id=this_node, dataset_id=ds_id, value=row[idx])
-          
-          if update_model:
-               print("The model is sucessfully updated with new cases and observations from the dataset")
-          else:
-               filename = self.id+"_batch_cases"
-               self.to_json(filename)
                for ix, row in data.iterrows():
-                    self.remove_dataset(ix, from_cmpx=True)
-               print("The model with new cases and observations is successfully exported as json, the model object does not keep new cases")
+                    ds_id = ix
+                    if ds_id in self._get_datasets():
+                         self.remove_dataset(ds_id, from_cmpx=True)
+                    self.create_dataset(ix, from_cmpx=True)
+                    for idx, cl in enumerate(data.columns):
+                         this_net = cl.split(".")[0]
+                         this_node = cl.split(".")[1]
+                         if not pd.isna(row[idx]):     self.enter_observation(network_id=this_net, node_id=this_node, dataset_id=ds_id, value=row[idx])
+                    print(f"The dataset {ds_id} is created or updated in the model")
+    
+          elif os.path.splitext(filename)[1] == ".json":
+               with open(filename, "r") as file:
+                    datasets_string = file.read()
+               new_datasets = json.loads(datasets_string)
 
+               for ds in new_datasets:
+                    ds_id = ds["id"]
+                    if ds_id in self._get_datasets():
+                         self.remove_dataset(ds_id, from_cmpx=True)
+                    self.create_dataset(dataset_id = ds_id, observations=ds["observations"], from_cmpx=True)                   
+                    print(f"The dataset {ds_id} is created or updated in the model")
+                                   
+          else:
+               raise ValueError("Data file should be in .csv or .json format")
+          
      def create_csv_template(self):
           headers = [(nt.id+"."+nd.id) for nt in self.networks for nd in nt.nodes]
           rows = [ds.id for ds in self.datasets]
@@ -374,20 +386,23 @@ class Model():
                dataset._convert_to_dotdict()
                print(f"Results are successfully imported to case {dataset.id}")
 
-     def get_results(self, filename=None):
+     def export_data(self, filename, dataset_ids=list[str], include_inputs = True, include_outputs = True):
+          pass
 
-          df = pd.DataFrame(columns=["Case", "Network", "Node", "State", "Probability"])
+          ###old get_results() START
+          # df = pd.DataFrame(columns=["Case", "Network", "Node", "State", "Probability"])
 
-          for ds in self.datasets:
-               for rs in ds.results:
-                    for rv in rs["resultValues"]:
-                         df.loc[len(df)] = [ds.id, rs["network"], rs["node"], rv["label"], rv["value"]]
+          # for ds in self.datasets:
+          #      for rs in ds.results:
+          #           for rv in rs["resultValues"]:
+          #                df.loc[len(df)] = [ds.id, rs["network"], rs["node"], rv["label"], rv["value"]]
 
-          if filename is not None:
-               df.to_csv(filename + ".csv")
-          else:
-               df.to_csv(self.id + "_results.csv")
-
+          # if filename is not None:
+          #      df.to_csv(filename + ".csv")
+          # else:
+          #      df.to_csv(self.id + "_results.csv")
+          ###old get_results() END
+          
      def create_sensitivity_config(self, **kwargs):
           sens_config = {}
           for fld in kwargs:
