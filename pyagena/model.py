@@ -386,8 +386,48 @@ class Model():
                dataset._convert_to_dotdict()
                print(f"Results are successfully imported to case {dataset.id}")
 
-     def export_data(self, filename, dataset_ids=list[str], include_inputs = True, include_outputs = True):
-          pass
+     def export_data(self, filename, dataset_ids:list[str]=None, include_inputs = True, include_outputs = True):
+
+          if dataset_ids is None:
+               ds_to_export = self.datasets
+          else:
+               ds_to_export = [ds for ds in self.datasets if ds.id in dataset_ids]
+
+          if os.path.splitext(filename)[1] == ".csv":
+               
+               if include_inputs & include_outputs:
+                    raise ValueError("For the csv file please choose only either inputs or outputs to export")
+               
+               if include_outputs:
+                    df = pd.DataFrame(columns=["Case", "Network", "Node", "State", "Probability"])
+
+                    for ds in ds_to_export:
+                         for rs in ds.results:
+                              for rv in rs.resultValues:
+                                   df.loc[len(df)] = [ds.id, rs["network"], rs["node"], rv["label"], rv["value"]]
+
+                    df.to_csv(filename)
+
+               if include_inputs:
+                    df = pd.DataFrame(columns=["Case", "Network", "Node", "State", "Probability"])
+
+                    for ds in ds_to_export:
+                         for obs in ds.observations:
+                              for ent in obs.entries:
+                                   df.loc[len(df)] = [ds.id, obs.network, obs.node, ent.value, ent.weight/len(obs.entries)]
+                    
+                    df.to_csv(filename)
+
+          if os.path.splitext(filename)[1] == ".json":
+
+               if dataset_ids is not None:
+                    data_json = self._ds_to_json(dataset_ids)
+               else:
+                    data_json = self._ds_to_json()
+               
+               with open(filename, "w") as outfile:
+                    json.dump(data_json, outfile)
+               
 
           ###old get_results() START
           # df = pd.DataFrame(columns=["Case", "Network", "Node", "State", "Probability"])
@@ -402,7 +442,7 @@ class Model():
           # else:
           #      df.to_csv(self.id + "_results.csv")
           ###old get_results() END
-          
+
      def create_sensitivity_config(self, **kwargs):
           sens_config = {}
           for fld in kwargs:
