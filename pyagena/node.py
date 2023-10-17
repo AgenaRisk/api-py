@@ -179,7 +179,7 @@ class Node():
         
         self.probabilities = [[1/len(self.states)] * len(self.states)] * temp_length
 
-    def set_probabilities(self, new_probs, by_row=False):
+    def set_probabilities(self, probabilities, by_row=False):
         
         if not by_row:
             if self.distr_type == "Manual":
@@ -189,14 +189,14 @@ class Node():
                     for pr in self.parents:
                         temp_length *= len(pr.states)
                     
-                for ss in new_probs:
+                for ss in probabilities:
                     if len(ss)==len(self.states):
                         subset_length_control *= 1
                     else:
                         subset_length_control *= 0
                 
-                if (len(new_probs) == temp_length) & (subset_length_control==1):
-                    self.probabilities = new_probs
+                if (len(probabilities) == temp_length) & (subset_length_control==1):
+                    self.probabilities = probabilities
                 else:
                     raise ValueError("The number of probabilities does not match the size of node NPT")
             else:
@@ -210,14 +210,14 @@ class Node():
                     for pr in self.parents:
                         temp_length *= len(pr.states)
                     
-                for ss in new_probs:
+                for ss in probabilities:
                     if len(ss)==temp_length:
                         subset_length_control *= 1
                     else:
                         subset_length_control *= 0
                 
-                if (len(new_probs) == len(self.states)) & (subset_length_control==1):
-                    self.probabilities = list(map(list, zip(*new_probs)))
+                if (len(probabilities) == len(self.states)) & (subset_length_control==1):
+                    self.probabilities = list(map(list, zip(*probabilities)))
                 else:
                     raise ValueError("The number of probabilities does not match the size of node NPT")
             else:

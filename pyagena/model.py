@@ -418,7 +418,7 @@ class Model():
                     
                     df.to_csv(filename)
 
-          if os.path.splitext(filename)[1] == ".json":
+          elif os.path.splitext(filename)[1] == ".json":
 
                if dataset_ids is not None:
                     data_json = self._ds_to_json(dataset_ids)
@@ -427,21 +427,9 @@ class Model():
                
                with open(filename, "w") as outfile:
                     json.dump(data_json, outfile)
-               
 
-          ###old get_results() START
-          # df = pd.DataFrame(columns=["Case", "Network", "Node", "State", "Probability"])
-
-          # for ds in self.datasets:
-          #      for rs in ds.results:
-          #           for rv in rs["resultValues"]:
-          #                df.loc[len(df)] = [ds.id, rs["network"], rs["node"], rv["label"], rv["value"]]
-
-          # if filename is not None:
-          #      df.to_csv(filename + ".csv")
-          # else:
-          #      df.to_csv(self.id + "_results.csv")
-          ###old get_results() END
+          else:
+               raise ValueError("The exported file should be in either .csv or .json format")  
 
      def create_sensitivity_config(self, **kwargs):
           sens_config = {}

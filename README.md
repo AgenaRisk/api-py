@@ -6,9 +6,9 @@
 * [Class and Instance Methods](#4-class-and-instance-methods)
 * [Importing a Model from .cmpx](#5-importing-a-model-from-cmpx)
 * [Creating and Modifying a Model in python](#6-creating-and-modifying-a-model-in-python)
-* [Creating Batch Cases for a Model in python](#7-creating-batch-cases-for-a-model-in-python)
-* [Agena.ai Cloud with pyagena](#8-agenaai-cloud-with-pyagena)
-* [Local agena.ai API with pyagena](#9-local-agenaai-api-with-pyagena)
+* [Agena.ai Cloud with pyagena](#7-agenaai-cloud-with-pyagena)
+* [Local agena.ai API with pyagena](#8-local-agenaai-api-with-pyagena)
+* [Importing and Exporting Datasets for Batch Calculation](#9-importing-and-exporting-datasets-for-batch-calculation)
 * [pyagena Use Case Examples](#10-pyagena-use-case-examples)
 
 # 1. Description
@@ -230,11 +230,11 @@ Id of the Model, optional.
 
 ## 3.4.2 `networks`
 
-A list of all the `Network` objects that make up the model. This field will be populated with the `create_network()` method.
+A list of all the `Network` objects in the model. This field will be populated with the `create_network()` method.
 
 ## 3.4.3 `datasets`
 
-Optional field for `Dataset` objects. When a new `Model` is created, it will have the default first dataset "Case 1", and it is possible to add new datasets to the model afterwards with the `create_dataset()` method.
+A list of all the  `Dataset` objects in the model. When a new `Model` is created, it will have the default first dataset "Case 1", and it is possible to add new datasets to the model afterwards with the `create_dataset()` method.
 
 ## 3.4.4 `network_links`
 
@@ -467,11 +467,7 @@ A method to clear all observations in a specific dataset (case) in the model.
 
 A method to clear all observations defined in a model. This function removes all observations from all datasets (cases).
 
-### 4.3.14 `import_results(results_file)`
-
-[TO BE IMPLEMENTED]
-
-### 4.3.15 `change_settings(setting arguments)`
+### 4.3.14 `change_settings(setting arguments)`
 
 A method to change model settings. The input parameters can be some or all of the `settings` fields. For example:
 
@@ -479,7 +475,7 @@ A method to change model settings. The input parameters can be some or all of th
 example_model.change_settings(convergence=0.001, iterations=75)
 ```
 
-### 4.3.16 `default_settings()`
+### 4.3.15 `default_settings()`
 
 A method to reset model settings back to default values. The default values for model settings are:
 
@@ -489,32 +485,29 @@ A method to reset model settings back to default values. The default values for 
 * iterations = 50
 * tolerance = 1
 
-### 4.3.17 `save_to_file(filename)`
+### 4.3.16 `save_to_file(filename)`
 
 A method to export the `Model` to a .cmpx or a .json file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a file in the correct format readable by agena.ai.
 
 Input parameter `filename` must have a file extension of '.cmpx' or '.json'.
 
-### 4.3.18 `get_results()`
+### 4.3.17 `import_data(filename)`
 
-A method to generate a .csv file based on the calculation results a Model contains. See [Section 8.2](#82-model-calculation) for details.
+A method to import dataset observations to the model using either a .csv or a .json input file. See examples below for the correct format of the input .csv and .json for data import.
+
+### 4.3.18 `export_data(filename, dataset_ids = optional, include_inputs = True, include_outputs = True)`
+
+A method to export dataset results or observations from the model to an either .csv or .json output file. See examples below for the format of the output .csv and .json files.
 
 ### 4.3.19 `from_cmpx(filepath = "/path/to/model/file.cmpx")`
 
 This is the class method to create a `Model` object from a .cmpx file. The method parses the .cmpx file and creates the python objects based on the model in the file. To see its use, see examples below.
 
-### 4.3.20 `create_batch_cases(input_data, update_model = True)`
+### 4.3.20 `create_csv_template()`
 
-A method to import a series of cases (datasets) and their observations from a .csv file. If the .csv file is prepared in the correct format (see examples below), the method will do either of the following:
+This method creates an empty CSV file for the model with the correct format so that it can be filled in and used for `import_data(filename)`. Note that this template includes every single node in the model, not all of which might be observable - you can delete the columns of the nodes which will not be observed. See examples below for its format and use.
 
-* if `update_model` is `True` (default): it will create new datasets for each row in the csv file and enter all the non-missing observations in the row to the model. The model now contains new datasets (cases) with the observations.
-* if `update_model` is `False`: it will create new datasets for each row in the csv file and enter all the non-missing observations in the row to the model, and export the model to a local .json file, and reset the python `Model` object. Now the model does not contain new datasets (cases) but there's a locally saved .json model with all the datasets and observations.
-
-### 4.3.21 `create_csv_template()`
-
-This method creates an empty CSV file with the correct format so that it can be filled in and used for `create_batch_bases()`. Note that this template includes every single node in the model, not all of which might be observable - you can delete the columns of the nodes which will not be observed.
-
-### 4.3.22 `create_sensitivity_config(...)`
+### 4.3.21 `create_sensitivity_config(...)`
 
 A method to create a sensitivity configuration object if a sensitivity analysis request will be sent to agena.ai Cloud servers or the local API. Its parameters are:
 
@@ -571,6 +564,13 @@ new_model.networks[0].id
 new_model.networks[0].nodes
 ```
 
+Alternatively you can assign the networks to variables with the get method for further use:
+
+```python
+net = new_model.get_network(network_id) #assign desired network to a variable
+net.nodes #display fields of the selected network
+```
+
 Similarly, each node in a network itself is a `Node` object. You can display all the fields of a node. Example uses for the second node in the first network of a model:
 
 ```python
@@ -581,6 +581,13 @@ new_model.networks[0].nodes[0].id
 new_model.networks[0].nodes[1].states
 ```
 
+Like the networks, you can assign nodes to variables with the get method for further use:
+
+```python
+node_one = net.get_node(node_id) #assign desired node to a variable
+node_one.states #display fields of the selected node
+
+```
 Once the python model is created from the imported .cmpx file, the `Model` object as well as all of its `Network`, `Dataset`, and `Node` objects can be manipulated using python methods.
 
 # 6. Creating and Modifying a Model in python
@@ -685,8 +692,8 @@ Note that probabilities will be a list (of size one) of lists even when there is
 
 To modify nodes they can either be obtained with the network method `get_node()` and assigned to a new variable, or preferably the network methods which allow the node modification can be used. For the former, as an example:
 
-```python```
-node_one = net.get_node("node_one)
+```python
+node_one = net.get_node("node_one")
 ```
 
 and now you can use the variable `node_one` to modify the node in the network.
@@ -708,7 +715,7 @@ node_one.set_states(["Negative","Positive"])
 or `set_node_states()` on a network:
 
 ```python
-net.set_node_states("node_one", ["Negative", "Positive"])
+net.set_node_states("node_one", states = ["Negative", "Positive"])
 ```
 
 Note that the input parameter for `set_states()` or `set_node_states()` is a list of node names. If this method changes the number of node states, the NPT will be adjusted accordingly and state probabilities will reset to uniform.
@@ -722,7 +729,7 @@ node_one.set_probabilities([[0.2,0.8]])
 or `set_node_probabilities()` on a network:
 
 ```python
-net.set_node_probabilities("node_one", [[0.2,0.8]])
+net.set_node_probabilities("node_one", probabilities = [[0.2,0.8]])
 ```
 
 Note that the `set_probabilities()` or `set_node_probabilities()` take **a list of lists** as input, even when the node has no parents and its NPT has only one row of probabilities. If the node has parents, the NPT will have multiple rows which should be in the input list.
@@ -770,19 +777,19 @@ Assume that `node_one` and `node_two` are the parents of `node_three` (how to ad
 There are two ways to order the values in this table for the `set_probabilities()` method, using the boolean `by_rows` parameter (which is set to `False` by default). If you want to enter the values following the rows in agena.ai Modeller NPT rather than ordering them by the combination of parent states (columns), you can use `by_rows = True` where each element of the list is a row of the agena.ai Modeller NPT:
 
 ```python
-net.set_node_probabilities("node_three", [[0.1, 0.2, 0.3, 0.4], [0.4, 0.45, 0.6, 0.55], [0.5, 0.35, 0.1, 0.05]], by_rows = True)
+net.set_node_probabilities("node_three", probabilities = [[0.1, 0.2, 0.3, 0.4], [0.4, 0.45, 0.6, 0.55], [0.5, 0.35, 0.1, 0.05]], by_rows = True)
 ```
 
 If, instead, you want to define the NPT with the probabilities that add up to 1 (conditioned on the each possible combination of parent states), you can set `by_rows = False` as the following example:
 
 ```python
-net.set_node_probabilities("node_three", [[0.1, 0.4, 0.5], [0.2, 0.45, 0.35], [0.3, 0.6, 0.1], [0.4, 0.55, 0.05]], by_rows = False)
+net.set_node_probabilities("node_three", probabilities = [[0.1, 0.4, 0.5], [0.2, 0.45, 0.35], [0.3, 0.6, 0.1], [0.4, 0.55, 0.05]], by_rows = False)
 ```
 
 Similarly, you can use the node method `set_expressions()` or the network method `set_node_expressions()` to define and update expressions for the nodes without Manual NPT tables. If the node has no parents, you can add a single expression:
 
 ```python
-net.set_node_expressions("example_node", ["TNormal(4,1,-10,10)"])
+net.set_node_expressions("example_node", expressions =  ["TNormal(4,1,-10,10)"])
 ```
 
 or
@@ -794,7 +801,7 @@ example_node.set_expressions(["TNormal(4,1,-10,10)"])
 If the node has parents and the expression is partitioned on the parents:
 
 ```python
-net.set_node_expressions("example_node", ["Normal(90,10)", "Normal(110,15)", "Normal(120,30)"], partition_parents = ["parent_node_id"])
+net.set_node_expressions("example_node", expressions = ["Normal(90,10)", "Normal(110,15)", "Normal(120,30)"], partition_parents = ["parent_node_id"])
 ```
 
 In the former example the expression is a list of size one, and in the latter the expression is a list with three elements and the second parameter (`partition_parameters`) is a list which contains the ids of the parent nodes. In the second example, expression input has three elements based on the number of states of the parent node(s) on which the expression is partitioned.
@@ -956,7 +963,7 @@ When a new model is created, it comes with a single dataset (case) by default. S
 To enter observations to a Model (which by default has one single case), use the `enter_observation()` function. You need to specify the node (and the network it belongs to) and give the value (one of the states if it's a discrete node, a sensible numerical value if it's a continuous node):
 
 ```python
-example_model.enter_observation(node_id = node_three, network_id = network_one, value = "High")
+example_model.enter_observation(network_id = network_one, node_id = node_three, value = "High")
 ```
 
 Note that this function did not specify any dataset (case). If this is the case, observation is always entered to the first (default) case.
@@ -967,10 +974,10 @@ You may choose to add more datasets (cases) to the model with the `create_datase
 example_model.create_dataset("Case 2")
 ```
 
-Once added, you can enter observation to the new dataset (case) if you specify the `dataset` parameter in the `enter_observation()` function:
+Once added, you can enter observation to the new dataset (case) if you specify the `dataset_id` parameter in the `enter_observation()` function:
 
 ```python
-example_model.enter_observation(dataset_id = "Case 2", node_id = node_three, network_id = network_one, value = "Medium")
+example_model.enter_observation(dataset_id = "Case 2", network_id = network_one, node_id = node_three, value = "Medium")
 ```
 
 ## 6.8 Exporting a Model to .cmpx or .json
@@ -987,9 +994,228 @@ or
 example_model.save_to_file("example_model.json")
 ```
 
-# 7. Creating Batch Cases for a Model in python
+# 7. agena.ai Cloud with pyagena
 
-pyagena allows creation of batch cases based on a single model and multiple observation sets. Observations should be provided in a CSV file with the correct format for the model. In this CSV file, each row of the data is a single case (dataset) with a set of observed values for nodes in the model. First column of the CSV file is the dataset (case) ids which will be used to create a new dataset for each data row. All other columns are possible evidence variables whose headers follow the "network_id.node_id" format. Thus, each column represents a node in the BN and is defined by the node id and the id of the network to which it belongs. The column header for the first one (dataset names) can be anything, 'Case' is the header name when `create_csv_template()` is used.
+Once the Bayesian network model is prepared and modified and is ready for calculations, you can connect to either agena.ai Cloud or a local agena.ai developer API environment for calculations.
+
+pyagena allows you to authenticate with agena.ai Cloud (using your existing account) and send your model files to Cloud for calculations. The connection between your local python environment and agena.ai Cloud servers uses the python package `requests`.
+
+
+## 7.1 Authentication
+
+The cloud operations use a python object called `login` to authenticate the user account, and allows user to run further calculations.
+
+To create an account, visit https://portal.agena.ai. Once created, you can use your credentials in pyagena to access the servers.
+
+```python
+example_user = login()
+```
+
+If you give no parameters, you will be prompted to enter your username and password for authentication. Alternatively you can pass them as parameters to login constructor:
+
+```python
+example_user = login(username, password)
+```
+
+This will send a POST request to authentication server, and will create a logged in user instance (including access and refresh tokens) which will be used to authenticate further operations.
+
+You can choose to see either basic operation result messages or detailed debugging messages when you use the model calculation and sensitivity analysis functions after authentication. You can set the debug message option for the logged in cloud user with:
+
+```python
+example_user.set_debug(True)
+```
+
+## 7.2 Model Calculation
+
+Using the login instance created, you can do further operations such as calculations and sensitivity analysis.
+
+`calculate()` function is used to send a python model object to agena.ai Cloud servers for calculation. This is a method of the logged in user instance. The function takes the following parameters:
+
+* `model` is the python Model object
+* (optional) `dataset_id` is the id of the dataset that contains the set of observations (`.id` of one of the `.datasets` objects) if any. If the model has only one dataset (case) with observations, dataset needs not be specified (it is also possible to send a model without any observations).
+
+Currently servers accept a single dataset (a single set of observations) for each calculation, if the python model has multiple datasets (cases), you need to specify which dataset is to be used.
+
+For example,
+
+```python
+example_user.calculate(example_model)
+```
+
+or
+
+```python
+example_user.calculate(example_model, dataset_id)
+```
+
+If the calculation is successful, this function will update the python model (the relevant `.results` field in the model's `.dataset`) with results of the calculation obtained from agena.ai Cloud.
+
+The model calculation computation supports asynchronous request (polling) if the computation job takes longer than 10 seconds. The python client will periodically recheck the servers and obtain the results once the computation is finished (or timed out, whichever comes first).
+
+If you would like to see the calculation results in a .csv format, you can use the Model method `export_data()` to generate the output file. See [Section 9](#9-importing-and-exporting-datasets-for-batch-calculation) for examples.
+
+## 7.3 Sensitivity Analysis
+
+Sensitivity analysis is another cloud server operation for the logged in user instance. For the sensitivity analysis, first you need to crate a sensivity configuration object, using the `.create_sensitivity_config(...)` method of a Model. For example,
+
+```python
+example_sens_config = example_model.create_sensitivity_config(
+                      targetNode = "node_one",
+                      sensitivityNodes = ["node_two","node_three"],
+                      report_settings = {"summaryStats" : ["mean", "variance"]},
+                      dataSet = "dataset_id",
+                      network = "network_one")
+```
+
+Here, `targetNode` and `sensitivityNodes` parameters are mandatory for a sensitivity configuration and the rest is optional with sensible defaults assigned on the cloud servers.
+
+Using the defined configuration object, now you can use the `sensitivity_analysis()` method of the logged in user instance to send the request to the server. For example,
+
+```python
+sa_results = example_user.sensitivity_analysis(example_model, example_sens_config)
+```
+
+If successful, this will return a `dict` with some information about the process and the results. Unlike `calculate()`, this method is advised to assign to a variable for future analysis and use. The returned `dict` includes the following fields:
+
+* lastUpdated
+* version
+* log
+* uuid
+* debug
+* duration
+* messages
+* results
+* memory
+
+The results contains raw results data for all analysis report options defined, such as tables, tornado graphs, and curve graphs. To access the results:
+
+```python
+sa_results.results
+```
+
+You can see the cloud API documentation for further information on the sensitivity analysis response [here (Manual/Tools: Sensitivity Analysis/Response)](https://agenarisk.atlassian.net/wiki/spaces/PROTO/pages/785711115/agena.ai+cloud+api+manual#agena.aicloudapimanual-Response.3).
+
+The sensitivity analysis computation supports asynchronous request (polling) if the computation job takes longer than 10 seconds. The python client will periodically recheck the servers and obtain the results once the computation is finished (or timed out, whichever comes first).
+
+# 8. Local agena.ai API with pyagena
+
+Agena.ai has a [Java based API](https://github.com/AgenaRisk/api) to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller or cloud. The local API has Java and maven dependencies, which you can see on its github page in full detail. pyagena allows communications with the local agena developer API.
+
+## 8.1 Setting up the local API directory
+
+To manually set up the local agena developer API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api.
+
+Or, for the API setup you can use the python environment:
+
+```python
+local_api_clone()
+```
+
+to clone the git repository of the API in your working directory.
+
+Once the API is cloned, you can compile maven environment with:
+
+```python
+local_api_compile()
+```
+
+Note that for this to work you need to stay in your current working directory, you don't need to navigate into the cloned api folder. The python function will compile the api directory as long as it's a sub-directory of the current working directory (default behaviour if `local_api_clone()` is used to clone the repository.)
+
+And if needed, activate your agena.ai developer license with
+
+```python
+local_api_activate_license("1234-ABCD-5678-EFGH")
+```
+
+passing on your developer license key as the input parameter.
+
+**!! Note that when there is a new version of the agena developer API, you need to re-run `local_api_compile()` function to update the local repository.**
+
+## 8.2 Model calculation with the local API
+
+Once the local API is compiled and developer license is activated, you can use the local API directly with your models defined in python. To use the local API for calculations of a model created in python:
+
+```python
+local_api_calculate(model, dataset_ids=optional, cache_path=optional)
+```
+
+where the parameter `model` is a python Model object, `dataset_ids` is a list of the dataset ids in the Model that you want to calculate, and `cache_path` is an optional parameter for when you want to use cache for batch case calculations (see below). If no `dataset_ids` is specified, the calculation will be completed for all existing datasets in the model. Even in the case where one dataset is desired to be calculated, the parameter is a list (of size one).
+
+For example,
+
+```python
+local_api_calculate(model = example_model,
+                    dataset_ids = ["example_dataset_id"])
+```
+
+This function will temporarily create the .cmpx file for the model and the separate .json file required for the dataset, and send them to the local API (cloned and compiled within the working directory), obtain the calculation result values and update the python Model object with the calculation results.
+
+To calculate multiple datasets in the same model:
+
+```python
+local_api_calculate(model = example_model,
+                    dataset_ids = ["case_one", "case_two"])
+```
+
+or to calculate all the datasets in the model, simply:
+
+```python
+local_api_calculate(model = exmple_model)
+```
+
+Local API calculation also supports the use of a cached result file. This option is useful when you want to be able to resume an interrupted batch calculation, as every dataset will be written to file as soon as it is calculated. This requires an existing output json file to be specified in the `cache_path` parameter, if calculation results for certain datasets already are in this file, they will not be recalculated, and the datasets given in `dataset_ids` without results in the existing output file will be calculated.
+
+To use a cached output file:
+
+```python
+local_api_calculate(model = example_model,
+                    dataset_ids = ["case_three", "case_four"],
+                    cache_path = "C:/path/to/file/model_output.json")
+```
+
+If you would like to see the calculation results in a .csv format, you can use the Model method `export_data()` to generate the output file as described in [Section 9](#9-importing-and-exporting-datasets-for-batch-calculation).
+
+## 8.4 Sensitivity Analysis with the local API
+
+You can also run a sensitivity analysis in the local API, using
+
+```python
+local_api_sensitivity_analysis(model, sens_config)
+```
+
+Here the sens_config is created by the use of `.create_sensitivity_config(...)` method of a Model. For example: 
+
+```python
+example_sens_config = example_model.create_sensitivity_config(
+                      targetNode = "node_one",
+                      sensitivityNodes = ["node_two","node_three"],
+                      report_settings = {"summaryStats" : ["mean", "variance"]},
+                      dataSet = "dataset_id",
+                      network = "network_one")
+```
+
+Note that, unlike `local_api_calculate()`, this function does not update the existing Model object but returns a new `dict` of results. So it's a good practice to assign the function to a variable for future analysis and use.
+
+```python
+sa_results = local_api_sensitivity_analysis(model = example_model,
+                      sens_config = example_sens_config)
+```
+
+This function will temporarily create the .cmpx file for the model and the separate .json files required for the dataset and sensitivity analysis configuration file, and send them to the local API (cloned and compiled within the working directory), obtain the sensitivity analysis result values and create the results `dict`. The returned `dict` includes the result values for displays such as sensitivity tables, tornado graphs, and curves. `local_api_sensitivity_analysis()` looks at the `dataSet` field of `sens_config` to determine which dataset to use, if the field doesn't exist, the default behaviour is to create a new dataset without any observations for the sensitivity analysis.
+
+# 9 Importing and Exporting Datasets for Batch Calculation
+
+It is possible to use pyagena for batch import/export of data and to use the local agena.ai API for batch operations. 
+
+## 9.1 Importing Data
+
+[Section 8.2](#82-model-calculation-with-the-local-api) already explained that you can calculate multiple datasets at once with the local API. The python model can have multiple datasets created in pyagena or parsed from an input .cmpx model with the datasets. Additionally, for an existing python model, you can use `import_data(filename)` to import multiple datasets and observations in batch from an input file. The input file can be either a .csv or a .json.
+
+### 9.1.1 From a .csv File
+
+If the input file is a .csv, it should consist of columns representing the nodes in the networks of the model and each row in the file is a new dataset.
+
+In this file, each row of the data is a single case (dataset) with a set of observed values for nodes in the model. First column of the CSV file is the dataset (case) ids which will be used to create a new dataset for each data row. All other columns are possible evidence variables whose headers follow the "network_id.node_id" format. Thus, each column represents a node in the BN and is defined by the node id and the id of the network to which it belongs. The column header for the first one (dataset names) can be anything, 'Case' is the header name when `create_csv_template()` is used.
 
 An example CSV format is as below:
 
@@ -1032,85 +1258,67 @@ An example CSV format is as below:
 </tbody>
 </table>
 
-Once the model is defined in pyagena and the CSV file with the observations is prepared, you can use `create_batch_cases()` to generate scenarios for the BN, either to update the `Model` object or to save the model with observations locally and not change the `Model` object:
+Once the model is defined in pyagena and the .csv file with the observations is prepared, you can use `import_data(filename)` to generate scenarios for the BN:
 
 ```python
-example_model.create_batch_cases("example_dataset.csv", update_model = True)
+example_model.import_data(filename="./example_data.csv")
 ```
 
-This will create new datasets (cases) for each row of the dataset in the model, fill these datasets (cases) in with the observations using the values given in the dataset. If `update_model` is `True`, the python model will keep the new cases and observations. If `False`, the method will create a new .json file for the model with all the datasets (cases), save locally, and remove the newly added cases from the model. The `update_model` parameter is `True` by default, unless specified otherwise. Missing values must be blank cells in the dataset. If there are missing values in the dataset, it will not fill in any observation for that specific node in that specific dataset (case).
+This will look up all the rows in the .csv file and create new datasets (cases) in the model for each row whose id does not already exist in the model datasets. If the row id already is the id of an existing dataset, the existing dataset will be updated with the information in the input file. Once the model has a dataset for each row of the input file, all the values of the nodes will be entered as observations to their datasets.
+
+Missing values must be blank cells in the dataset. If there are missing values in the dataset, it will not fill in any observation for that specific node in that specific dataset (case).
 
 You can use `create_csv_template()` function on a Model object to create an empty .csv file with the correct format for all the nodes and networks in the model. You can then delete the columns for the nodes that are not observed.
 
-# 8. agena.ai Cloud with pyagena
+### 9.1.2 From a .json File
 
-Once the Bayesian network model is prepared and modified and is ready for calculations, you can connect to either agena.ai Cloud or a local agena.ai developer API environment for calculations.
+The method `import_data(filename)` also accepts .json file inputs. In this case the .json file should have a list of datasets to be added to the model in the correct format regarding the field names and values. For example:
 
-pyagena allows you to authenticate with agena.ai Cloud (using your existing account) and send your model files to Cloud for calculations. The connection between your local python environment and agena.ai Cloud servers is based on the python `requests` package.
-
-
-## 8.1 Authentication
-
-The cloud operations use a python object called `login` to authenticate the user account, and allows user to run further calculations.
-
-To create an account, visit https://portal.agena.ai. Once created, you can use your credentials in pyagena to access the servers.
-
-```python
-example_user = login()
+```json
+[{
+    "id": "dataset_one",
+    "observations": [
+      {
+        "network": "net_one",
+        "node": "node_one",
+        "entries" : [
+          {
+            "weight": 1,
+            "value": "Low"
+          }
+      ]
+      },
+      {
+        "network": "net_one",
+        "node": "node_two",
+        "entries" : [
+          {
+            "weight": 1,
+            "value": 5.0
+          }
+      ]}]}]
 ```
 
-If you give no parameters, you will be prompted to enter your username and password for authentication. Alternatively you can pass them as parameters to login constructor:
+The input file can be used with the import method:
 
 ```python
-example_user = login(username, password)
+example_model.import_data(filename="./example_data.json")
 ```
 
-This will send a POST request to authentication server, and will create a logged in user instance (including access and refresh tokens) which will be used to authenticate further operations.
+This will look up the ids of all the datasets in the .json input, create new datasets in the model for those whose id does not already exist in the model. If the id of any dataset in the input file already exists in the model, that dataset will be updated with the information from the input file. The observations for all the datasets will be imported to the model.
 
-You can choose to see either basic operation result messages or detailed debugging messages when you use the model calculation and sensitivity analysis functions after authentication. You can set the debug message option for the logged in cloud user with:
+## 9.2 Exporting Data to a .csv File
 
-```python
-example_user.set_debug(True)
-```
+It is also possible to export model data to either a .csv or a .json file. The method `export_data(...)` allows the export of (calculated) results as well as observations in the datasets.
 
+### 9.2.1 To a .csv File
 
-## 8.2 Model Calculation
+If the output of the `export_data(...)` is a .csv file, it can either export observations (inputs) or the results (outputs) of a model dataset.
 
-Using the login instance created, you can do further operations such as calculations and sensitivity analysis.
-
-`calculate()` function is used to send a python model object to agena.ai Cloud servers for calculation. This is a method of the logged in user instance. The function takes the following parameters:
-
-* `model` is the python Model object
-* (optional) `dataset` is the id of the dataset that contains the set of observations (`.id` of one of the `.datasets` objects) if any. If the model has only one dataset (case) with observations, dataset needs not be specified (it is also possible to send a model without any observations).
-
-Currently servers accept a single set of observations for each calculation, if the python model has multiple datasets (cases), you need to specify which dataset is to be used.
-
-For example,
+To export calculation results of all the datasets in a model to a .csv file:
 
 ```python
-example_user.calculate(example_model)
-```
-
-or
-
-```python
-example_user.calculate(example_model, dataset_id)
-```
-
-If the calculation is successful, this function will update the python model (the relevant `.results` field in the model's `.dataset`) with results of the calculation obtained from agena.ai Cloud.
-
-The model calculation computation supports asynchronous request (polling) if the computation job takes longer than 10 seconds. The python client will periodically recheck the servers and obtain the results once the computation is finished (or timed out, whichever comes first).
-
-If you would like to see the calculation results in a .csv format, you can use the Model method `get_results()` to generate the output file.
-
-```python
-example_model.get_results()
-```
-
-or with a custom file name:
-
-```python
-example_model.get_results("example_output_file")
+example_model.export_data(filename="./example_output.csv", include_inputs=False, include_outputs=True)
 ```
 
 This will generate a .csv file with the following format:
@@ -1185,139 +1393,124 @@ This will generate a .csv file with the following format:
 </tbody>
 </table>
 
-
-## 8.3 Sensitivity Analysis
-
-Sensitivity analysis is another cloud server operation for the logged in user instance. For the sensitivity analysis, first you need to crate a sensivity configuration object, using the `.create_sensitivity_config(...)` method of a Model. For example,
+You can see the posterior probabilities for all the nodes calculated in the model. If you choose to export certain datasets, you can specify:
 
 ```python
-example_sens_config = example_model.create_sensitivity_config(
-                      targetNode = "node_one",
-                      sensitivityNodes = ["node_two","node_three"],
-                      report_settings = {"summaryStats" : ["mean", "variance"]},
-                      dataSet = "dataset_id",
-                      network = "network_one")
+example_model.export_data(filename="./example_output.csv", dataset_ids = ["Case 1", "Case 2"], include_inputs=False, include_outputs=True)
 ```
 
-Here, `targetNode` and `sensitivityNodes` parameters are mandatory for a sensitivity configuration and the rest is optional with sensible defaults assigned on the cloud servers.
-
-Using the defined configuration object, now you can use the `sensitivity_analysis()` method of the logged in user instance to send the request to the server. For example,
+If you choose to export only observations (inputs) and not the state probabilities of the calculated nodes:
 
 ```python
-sa_results = example_user.sensitivity_analysis(example_model, example_sens_config)
+example_model.export_data(filename="./example_output.csv", include_inputs=True, include_outputs=False)
 ```
 
-If successful, this will return a `dict` with some information about the process and the results. Unlike `calculate()`, this method is advised to assign to a variable for future analysis and use. The returned `dict` includes the following fields:
+Let's assume the Case 1 has the following three observations:
 
-* lastUpdated
-* version
-* log
-* uuid
-* debug
-* duration
-* messages
-* results
-* memory
+* Node 1: observed State 2
+* Node 2: observed State 1
+* Node 3: soft evidence p(State 2)=0.5, p(State 3)=0.5
 
-The results contains raw results data for all analysis report options defined, such as tables, tornado graphs, and curve graphs. To access the results:
+The export method will generate a .csv with the following format:
+
+<table>
+<thead>
+  <tr>
+    <th>Case</th>
+    <th>Network</th>
+    <th>Node</th>
+    <th>State</th>
+    <th>Probability</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 1</td>
+    <td>State 2</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 2</td>
+    <td>State 1</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 3</td>
+    <td>State 2</td>
+    <td>0.5</td>
+  </tr>
+  <tr>
+    <td>Case 1</td>
+    <td>Network 1</td>
+    <td>Node 3</td>
+    <td>State 3</td>
+    <td>0.5</td>
+  </tr>
+</tbody>
+</table>
+
+### 9.2.2 To a .json File
+
+If the export output is a .json file, then it will contain a list of datasets with all their fields (id, observations, results). The `include_inputs` and `include_outputs` boolean parameters do not affect the .json output.
+
+For example,
 
 ```python
-sa_results["results"]
+example_model.export_data(filename="./example_output.json")
 ```
 
-You can see the cloud API documentation for further information on the sensitivity analysis response [here (Manual/Tools: Sensitivity Analysis/Response)](https://agenarisk.atlassian.net/wiki/spaces/PROTO/pages/785711115/agena.ai+cloud+api+manual#agena.aicloudapimanual-Response.3).
+will list all the datasets in the model in the exported .json file such as:
 
-The sensitivity analysis computation supports asynchronous request (polling) if the computation job takes longer than 10 seconds. The python client will periodically recheck the servers and obtain the results once the computation is finished (or timed out, whichever comes first).
-
-# 9. Local agena.ai API with pyagena
-
-Agena.ai has a [Java based API](https://github.com/AgenaRisk/api) to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller or cloud. The local API has Java and maven dependencies, which you can see on its github page in full detail. pyagena allows communications with the local agena developer API.
-
-## 9.1 Setting up the local API directory
-
-To manually set up the local agena developer API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api.
-
-Or, for the API setup you can use the python environment:
-
-```python
-local_api_clone()
+```json
+[{
+    "id": "dataset_one",
+    "observations": [
+      {
+        "network": "net_one",
+        "node": "node_one",
+        "entries" : [
+          {
+            "weight": 1,
+            "value": "Low"
+          }
+      ]
+      },
+      {
+        "network": "net_one",
+        "node": "node_two",
+        "entries" : [
+          {
+            "weight": 1,
+            "value": 5.0
+          }
+      ]}],
+    "results": [
+      {
+        "network": "net_one",
+        "node": "node_four",
+        "resultValues": [
+          {
+            "label": "Low",
+            "value": 0.2
+          },
+          {
+            "label": "High",
+            "value": 0.8
+          }
+        ],
+        "summaryStatistics": {
+          "confidenceInterval": 50,
+          "entropy": 0,
+          "percentile": 0.5,
+        }
+      }]}]
 ```
-
-to clone the git repository of the API in your working directory.
-
-Once the API is cloned, you can compile maven environment with:
-
-```python
-local_api_compile()
-```
-
-Note that for this to work you need to stay in your current working directory, you don't need to navigate into the cloned api folder. The python function will compile the api directory as long as it's a sub-directory of the current working directory (default behaviour if `local_api_clone()` is used to clone the repository.)
-
-And if needed, activate your agena.ai developer license with
-
-```python
-local_api_activate_license("1234-ABCD-5678-EFGH")
-```
-
-passing on your developer license key as the input parameter.
-
-**!! Note that when there is a new version of the agena developer API, you need to re-run `local_api_compile()` function to update the local repository.**
-
-## 9.2 Model calculation with the local API
-
-Once the local API is compiled and developer license is activated, you can use the local API directly with your models defined in python. To use the local API for calculations of a model created in python:
-
-```python
-local_api_calculate(model, dataset_id)
-```
-
-where the parameter `model` is a python Model object and `dataset_id` is the id of one of the datasets (cases) existing in the Model object. For example,
-
-```python
-local_api_calculate(model = example_model,
-                    dataset_id = "example_dataset_id")
-```
-
-This function will temporarily create the .cmpx file for the model and the separate .json file required for the dataset, and send them to the local API (cloned and compiled within the working directory), obtain the calculation result values and update the python Model object with the calculation results.
-
-If you'd like to run multiple datasets in the same model in batch, you can use `local_api_batch_calculate()` instead. This function takes a python Model object as input and runs the calculation for each dataset in it, and fills in all the relevant result fields under each dataset. You can use this function as
-
-```python
-local_api_batch_calculate(model = example_model)
-```
-
-where `example_model` is a python Model object with multiple dataSets.
-
-If you would like to see the calculation results in a .csv format, you can use the Model method `get_results()` to generate the output file as described in [Section 8.2](#82-model-calculation).
-
-
-## 9.3 Sensitivity Analysis with the local API
-
-You can also run a sensitivity analysis in the local API, using
-
-```python
-local_api_sensitivity_analysis(model, sens_config)
-```
-
-Here the sens_config is created by the use of `.create_sensitivity_config(...)` method of a Model. For example: 
-
-```python
-example_sens_config = example_model.create_sensitivity_config(
-                      targetNode = "node_one",
-                      sensitivityNodes = ["node_two","node_three"],
-                      report_settings = {"summaryStats" : ["mean", "variance"]},
-                      dataSet = "dataset_id",
-                      network = "network_one")
-```
-
-Note that, unlike `local_api_calculate()`, this function does not update the existing Model object but returns a new `dict` of results. So it's a good practice to assign the function to a variable for future analysis and use.
-
-```python
-sa_results = local_api_sensitivity_analysis(model = example_model,
-                      sens_config = example_sens_config)
-```
-
-This function will temporarily create the .cmpx file for the model and the separate .json files required for the dataset and sensitivity analysis configuration file, and send them to the local API (cloned and compiled within the working directory), obtain the sensitivity analysis result values and create the results `dict`. The returned `dict` includes the result values for displays such as sensitivity tables, tornado graphs, and curves. `local_api_sensitivity_analysis()` looks at the `dataSet` field of `sens_config` to determine which dataset to use, if the field doesn't exist, the default behaviour is to create a new dataset without any observations for the sensitivity analysis.
 
 # 10. pyagena Use Case Examples
 
@@ -1407,10 +1600,10 @@ Now we can add nodes to the network. Let's start with mean and variance nodes:
 #Creating mean and variance nodes
 
 net.create_node(id="mean", simulated=True)
-net.set_node_expressions(node_id="mean", ["Normal(0.0,100000.0)"])
+net.set_node_expressions(node_id="mean", expressions=["Normal(0.0,100000.0)"])
 
 net.create_node(id="variance", simulated=True)
-net.set_node_expressions(node_id="variance", ["Uniform(0.0,50.0)"])
+net.set_node_expressions(node_id="variance", expressions=["Uniform(0.0,50.0)"])
 ```
 
 Common variance and tau nodes:
@@ -1419,11 +1612,11 @@ Common variance and tau nodes:
 #Now we create the "common variance" and its "tau" parameter nodes
 
 net.create_node(id="tau", simulated=True)
-net.set_node_expressions(node_id="tau", ["Gamma(0.001,1000.0)"])
+net.set_node_expressions(node_id="tau", expressions=["Gamma(0.001,1000.0)"])
 
 net.create_node(id="common_var", name="common variance", simulated=True)
 net.create_edge(child_id="common_var", parent_id="tau")
-net.set_node_expressions(node_id="common_var", ["Arithmetic(1.0/tau)"])
+net.set_node_expressions(node_id="common_var", expressions=["Arithmetic(1.0/tau)"])
 ```
 
 Now we can create the four mean nodes, using a for loop and list of `Node`s:
@@ -1440,7 +1633,7 @@ for mn in mean_names:
     net.create_node(id=this_id, name=this_name)
     net.create_edge(child_id=this_id, parent_id="mean")
     net.create_edge(child_id=this_id, parent_id="variance")
-    net.set_node_expressions(node_id=this_id, ["Normal(mean,variance)"])
+    net.set_node_expressions(node_id=this_id, expressions=["Normal(mean,variance)"])
     means_list.append(this_id)
 ```
 
@@ -1459,9 +1652,9 @@ for i, (obs, mn) in enumerate(zip(observations, means_list)):
     for j, ob in enumerate(obs):
         this_id = "y"+str(i)+str(j)
         net.create_node(id=this_id, simulated=True)
-        net.create_edge(child_id= this_id, parent_id="common_var")
-        net.create_edge(child_id= this_id, parent_id=mn)
-        net.set_node_expressions(node_id=this_id, ["Normal("+mn+",common_var)"])
+        net.create_edge(child_id=this_id, parent_id="common_var")
+        net.create_edge(child_id=this_id, parent_id=mn)
+        net.set_node_expressions(node_id=this_id, expressions=["Normal("+mn+",common_var)"])
 ```
 
 We enter all the observation values to the nodes:
@@ -1472,7 +1665,7 @@ We enter all the observation values to the nodes:
 for i, obs in enumerate(observations):
     for j, ob in enumerate(obs):
         this_node_id = "y" + str(i) + str(j)
-        diet_model.enter_observation(network_id=net.id,
+        diet.enter_observation(network_id=net.id,
         node_id=this_node_id,
         value=ob)
 ```
