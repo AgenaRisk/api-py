@@ -27,8 +27,65 @@ class Dataset():
         if len(result) == 0:
             return None
         
-    def enter_observation_to_dataset(self):
-        pass
+    def enter_observation(self, network_id, node_id, value, variable_name=None):
+          
+        new_obs = {"node":node_id, "network":network_id, "entries":[]}
+
+        if variable_name is not None:
+            new_obs["constantName"] = variable_name
+            new_obs["entries"].append({"weight":1, "value":value})
+        else:
+            if isinstance(value, list) and len(value)>1:
+                for vl in value:
+                    new_obs["entries"].append({"weight":vl[0], "value":vl[1]})
+            else:
+                new_obs["entries"].append({"weight":1, "value":value})
+
+        if self.observations is None:
+            self.observations = []
+          
+        if len(self.observations)>0:
+            obs_rewrite = False
+            var_obs_check = False
+
+            if variable_name is None:     
+                for idx, obs in enumerate(self.observations):
+                    if (obs["node"] == node_id) & (obs["network"] == network_id):
+                        if "constantName" not in obs.keys():
+                            obs_rewrite = True
+                            rewrite_idx = idx
+                        else:
+                            obs_rewrite = False
+                            var_obs_check = True
+            else:
+                for idx, obs in enumerate(self.observations):
+                    if (obs["node"] == node_id) & (obs["network"] == network_id):
+                        if "constantName" not in obs.keys():
+                            obs_rewrite = False
+                        else:
+                            if obs["constantName"] == variable_name:
+                                obs_rewrite = True
+                                rewrite_idx = idx
+
+            if obs_rewrite:
+                self.observations[rewrite_idx] = new_obs
+                print(f"The observation of {value} is entered to the node {node_id}")
+            if not obs_rewrite:
+                self.observations.append(new_obs)
+                if var_obs_check:
+                    print(f"The observation of {value} is entered to the node {node_id} with existing variable observations, in calculations the variable observations will be ignored")
+                else:
+                    print(f"The observation of {value} is entered to the node {node_id}")
+
+        else:
+            self.observations.append(new_obs)
+            print(f"The observation of {value} is entered to the node {node_id}")
+
+    def remove_observation(self, network_id, node_id):
+
+        obs_del = [obs for obs in self.observations if obs["node"]==node_id and obs["network"]==network_id].pop()
+        self.observations.remove(obs_del)
+        print("The observation is successfully removed")
 
     def _convert_to_dotdict(self):
         dot_obs = []

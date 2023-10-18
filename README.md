@@ -444,24 +444,29 @@ A method to access a `Dataset` object in a `Model`. The `Dataset` can be assigne
 
 ### 4.3.10 `enter_observation(network_id, node_id, value, dataset_id = optional, variable_input = False)`
 
-A method to enter observation to a model. To enter the observation to a specific dataset (case), the dataset id must be given as the input parameter `dataset`. If `dataset` is left blank, the entered observation will by default go to the first dataset (case) of the model (called "Case 1" by default). This means that if there is no extra datasets created for a model (which by default comes with "Case 1"), any observation entered will be set for this dataset (mimicking the behaviour of entering observation to agena.ai Modeller).
+A method to enter observation to a dataset in the model. Calls the dataset method `enter_observation` in the background.
+
+To enter the observation to a specific dataset (case), the dataset id must be given as the input parameter `dataset`. If `dataset` is left blank, the entered observation will by default go to the first dataset (case) of the model (called "Case 1" by default). This means that if there is no extra datasets created for a model (which by default comes with "Case 1"), any observation entered will be set for this dataset (mimicking the behaviour of entering observation to agena.ai Modeller).
 
 The observation is defined with the mandatory input parameters:
 * `network_id` = `Network.id` of the network the observed node belongs to
 * `node_id` = `Node.id` of the observed node
 * `value` = this parameter can be:
     * the value or state of the observation for the observed node (if it is hard evidence)
-    * the id of a variable (constant) defined for the node (if `variable_input` is `True`)
     * the array of multiple values and their weights (if it is soft evidence)
+    * the value of the observation for a variable of the observed node
+* `dataset_id` = optional, `Dataset.id` of the dataset which will have the observation
 * `variable_input` = a boolean parameter, set to `True` if the entered observation is a variable (constant) id for the node instead of an observed value.
+
+A node can have only one observation. This observation can be hard evidence (single state or a single value) or soft evidence (multiple states or multiple values with their weights). If the node has variable(s), the variable value(s) can also be observed. Each variable of the node can have an observation. If the node with variables has observations for its variables and an observation for itself, the variable observations will be ignored and only the node observation will be used in calculations.
 
 ### 4.3.11 `remove_observation(network_id, node_id, dataset_id = optional)`
 
-A method to remove a specific observation from the model. It requires the id of the node which has the observation to be removed and the id of the network the node belongs to.
+A method to remove a specific observation from the model. Calls the dataset method `remove_observation` in the background. It requires the id of the node which has the observation to be removed and the id of the network the node belongs to.
 
 ### 4.3.12 `clear_dataset_observations(dataset_id)`
 
-A method to clear all observations in a specific dataset (case) in the model.
+A method to clear all observations in a specific dataset (case) in the model. Calls the dataset method `clear_all_observations()` in the background.
 
 ### 4.3.13 `clear_all_observations()`
 
@@ -532,11 +537,31 @@ Default is 75)
 
 For the use of the function, see Sections [8](#8-agenaai-cloud-with-pyagena) and [9](#9-local-agenaai-api-with-pyagena).
 
-## 4.5 agena.ai Cloud Related Functions
+## 4.5 `Dataset` Methods
+
+The `Dataset` objects in the models hold the observations and calculation results. The datasets have the following methods.
+
+### 4.5.1 `enter_observation(network_id, node_id, value, variable_name=optional)`
+
+A method to enter an observation to a dataset. See Section [4.3.10](#4310-enter_observationnetwork_id-node_id-value-dataset_id--optional-variable_input--false) for details. Section 4.3.10 is the model method which calls this dataset method after using its parameter `dataset_id` to determine to which dataset the observation is entered.
+
+### 4.5.2 `remove_observation(network_id, node_id)`
+
+A method to remove an observation from a dataset. See Section [4.3.11](#4311-remove_observationnetwork_id-node_id-dataset_id--optional) for details. Section 4.3.11 is the model method which calls this dataset method after using its parameter `dataset_id` to determine from which dataset is the observation is removed.
+
+### 4.5.3 `clear_all_observations()`
+
+A method to remove all observations from a dataset. If the model method `clear_dataset_observations(dataset_id)` is used, it calls this dataset method. Not to be confused with the model method `clear_all_observations()` which removes all observations from all datasets in the model.
+
+### 4.5.4 `get_result(network_id, node_id)`
+
+If the dataset contains calculation results, you can access the results of a specific node in the model with this method.
+
+## 4.6 agena.ai Cloud Related Functions
 
 pyagena allows users to send their models to agena.ai Cloud servers for calculation. The functions around the server capabilities (including authentication) are described in [Section 8](#8-agenaai-cloud-with-pyagena).
 
-## 4.6 agena.ai Local API Related Functions
+## 4.7 agena.ai Local API Related Functions
 
 pyagena allows users to connect to the local agena.ai developer API for calculation. The functions about the local developer API communication are descibed in [Section 9](#9-local-agenaai-api-with-pyagena).
 

@@ -204,35 +204,7 @@ class Model():
                
                ds = self.get_dataset(dataset_id)
           
-          new_obs = {"node":node_id, "network":network_id, "entries":[]}
-
-          if variable_name is not None:
-               new_obs["constantName"] = variable_name
-               new_obs["entries"].append({"weight":1, "value":value})
-          else:
-               if isinstance(value, list) and len(value)>1:
-                    for vl in value:
-                         new_obs["entries"].append({"weight":vl[0], "value":vl[1]})
-               else:
-                    new_obs["entries"].append({"weight":1, "value":value})
-
-          if ds.observations is None:
-               ds.observations = []
-          
-          if len(ds.observations)>0:
-               obs_rewrite = False
-               if variable_name is None:     
-                    for idx, obs in enumerate(ds.observations):
-                         if (obs["node"] == node_id) & (obs["network"] == network_id):
-                              obs_rewrite = True
-                              rewrite_idx = idx
-               if obs_rewrite:
-                    ds.observations[rewrite_idx] = new_obs
-               if not obs_rewrite:
-                    ds.observations.append(new_obs)
-
-          else:
-               ds.observations.append(new_obs)
+          ds.enter_observation(network_id=network_id, node_id=node_id, value=value, variable_name=variable_name)
                     
      def remove_observation(self, network_id, node_id, dataset_id=None):
           if dataset_id is None:
@@ -243,9 +215,7 @@ class Model():
                
                ds = self.get_dataset(dataset_id)
 
-          obs_del = [obs for obs in ds.observations if obs["node"]==node_id and obs["network"]==network_id].pop()
-          ds.observations.remove(obs_del)
-          print("The dataset is successfully removed")
+          ds.remove_observation(network_id=network_id, node_id=node_id)
 
      def clear_dataset_observations(self, dataset_id):
           if dataset_id not in self._get_datasets():
@@ -253,14 +223,13 @@ class Model():
 
           ds = self.get_dataset(dataset_id)     
 
-          ds.observations = None
-          print("All observations in the dataset are successfully cleared")
+          ds.clear_all_observations()
 
      def clear_all_observations(self):
           for ds in self.datasets:
-               ds.observations = None
+               ds.observations = []
           
-          print("All observations from the all datasets in the model are successfully cleared")
+          print("All observations in all datasets in the model are successfully cleared")
 
      def change_settings(self, **kwargs):
           for fld in kwargs:

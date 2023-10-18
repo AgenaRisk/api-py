@@ -49,14 +49,18 @@ class Network():
         this_node = Node(id=id, name=name, description=description, type=type, simulated=simulated, states=states)
         self.add_node(this_node)
 
-    def create_edge(self, child, parent):
-        child_node = self.get_node(child)
-        parent_node = self.get_node(parent)
+    def create_edge(self, child_id, parent_id):
+        child_node = self.get_node(child_id)
+        parent_node = self.get_node(parent_id)
         child_node.add_parent(parent_node)
 
-    def set_node_probabilities(self, node_id, new_probs, by_row=False):
+    def remove_edge(self, child_id, parent_id):
+        child_node = self.get_node(child_id)
+        parent_node = self.get_node(parent_id)        
+
+    def set_node_probabilities(self, node_id, probabilities, by_row=False):
         node = self.get_node(node_id)
-        node.set_probabilities(new_probs=new_probs, by_row=by_row)
+        node.set_probabilities(probabilities=probabilities, by_row=by_row)
 
     def set_node_states(self, node_id, states):
         node = self.get_node(node_id)
@@ -79,7 +83,7 @@ class Network():
             raise ValueError("There is already a node in the network with this id")
         else:
             self.nodes.append(new_node)
-            print(f"The node {new_node.name} is successfully added to the network. If {new_node.name} has any parent nodes, make sure to add them to the network separately")
+            print(f"The node {new_node.id} is successfully added to the network.")
 
     def remove_node(self, node_id):  
         old_node = self.get_node(node_id)
@@ -99,7 +103,7 @@ class Network():
     
     def get_node(self, node_id) -> Node:
           if node_id not in self._get_nodes():
-               raise ValueError(f"The model does not have a node with the id {node_id}")
+               raise ValueError(f"The network {self.id} does not have a node with the id {node_id}")
           
           node = [n for n in self.nodes if n.id==node_id].pop()
           return node
