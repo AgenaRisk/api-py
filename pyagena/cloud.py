@@ -1,18 +1,12 @@
 from .node import Node
 from .network import Network
-from .dataset import Dataset
+from .dataset import Dataset, dotdict
 from .model import Model
 
 import requests as re
 from getpass import getpass
 import time    
 import json
-
-class dotdict(dict):
-    """dot.notation access to dictionary attributes"""
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
 
 class login():
 
@@ -45,6 +39,7 @@ class login():
             self.access_expire = self.login_time + access_duration
             self.refresh_expire = self.login_time + refresh_duration
             self.debug = False
+            self.server = "https://api.agena.ai"
 
         else:
             raise ValueError("Authentication failed")
@@ -60,6 +55,12 @@ class login():
             self.debug = False
             print("Clod operation results will not display detailed debug messages")
 
+    def set_server_url(self, url):
+        self.server = url
+        print(f"The root of the server URL for cloud operations is set as {url}")
+
+    def reset_server_url(self):
+        self.server = "https://api.agena.ai"
 
     def refresh_auth(self):
         ref_url = "https://auth.agena.ai/realms/cloud/protocol/openid-connect/token"
@@ -72,20 +73,17 @@ class login():
         if ref_response.status_code == 200:
             self.access_token = ref_response.json()["access_token"]   
 
-    def calculate(self, model:Model, dataset=None, server=None):
+    def calculate(self, model:Model, dataset_id=None):
         now = int(time.time())
         model_to_send = model._generate_cmpx()
 
-        if server is None:
-            calculate_url =  "https://api.agena.ai/public/v1/calculate" #default calculate endpoint
-        else:
-            calculate_url = server
+        calculate_url = self.server + "/public/v1/calculate"
         
-        if dataset is None:
+        if dataset_id is None:
             calculate_body = {"sync-wait":"true", "model":model_to_send["model"]}
         else:
             for ds in model.datasets:
-                if ds.id == dataset:
+                if ds.id == dataset_id:
                     dataset_to_send = {"observations":ds.observations}
             calculate_body = {"sync-wait":"true", "model":model_to_send["model"], "dataSet":dataset_to_send}
 
@@ -104,12 +102,12 @@ class login():
                     print(db)
             
             if calculate_response.json()["status"]=="success":
-                if dataset is None:
+                if dataset_id is None:
                     model.datasets[0].results = calculate_response.json()["results"]
                     model.dataset[0]._convert_to_dotdict()
                 else:
                     for ds in model.datasets:
-                        if ds.id == dataset:
+                        if ds.id == dataset_id:
                             ds.results = calculate_response.json()["results"]
                             ds._convert_to_dotdict()
         elif calculate_response.status_code == 202:           
@@ -138,12 +136,12 @@ class login():
                         print(db)
 
                 if polled_response.json()["status"]=="success":
-                    if dataset is None:
+                    if dataset_id is None:
                         model.datasets[0].results = polled_response.json()["results"]
                         model.datasets[0]._convert_to_dotdict()
                     else:
                         for ds in model.datasets:
-                            if ds.id == dataset:
+                            if ds.id == dataset_id:
                                 ds.results = polled_response.json()["results"]
                                 ds._convert_to_dotdict()
                 
@@ -159,27 +157,23 @@ class login():
                     print(db)
             raise ValueError(calculate_response.json()["messages"])
         
-    def sensitivity_analysis(self, model:Model, sens_config, server=None):
+    def sensitivity_analysis(self, model:Model, sens_config):
 
         def _results_to_dotdict(input):
             dot_results = dotdict(input)
             dot_results.results = dotdict(dot_results.results)
-            for tab in dot_results.results.tables:
-                tab = dotdict(tab)
-            for cur in dot_results.results.responseCurveGraphs:
-                cur = dotdict(cur)
-            for tor in dot_results.results.tornadoGraphs:
-                tor = dotdict(tor)
+            for idx, tb in enumerate(dot_results.results.tables):
+                dot_results.results.tables[idx] = dotdict(dot_results.results.tables[idx])
+            for idx, cur in enumerate(dot_results.results.responseCurveGraphs):
+                dot_results.results.responseCurveGraphs[idx] = dotdict(dot_results.results.responseCurveGraphs[idx])
+            for idx, tor in enumerate(dot_results.results.tornadoGraphs):
+                dot_results.results.tornadoGraphs[idx] = dotdict(dot_results.results.tornadoGraphs[idx])
         
             return dot_results
 
         now = int(time.time())
         model_to_send = model._generate_cmpx()
-        
-        if server is None:
-            sa_url = "https://api.agena.ai/public/v1/tools/sensitivity"
-        else:
-            sa_url = server
+        sa_url = self.server + "/public/v1/tools/sensitivity"
         
         sa_body = {"sync-wait":"true", "model":model_to_send["model"], "sensitivityConfig":sens_config}
 

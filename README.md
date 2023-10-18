@@ -1050,6 +1050,18 @@ You can choose to see either basic operation result messages or detailed debuggi
 example_user.set_debug(True)
 ```
 
+You can also choose to change the root of the API server URL for operations for the logged in user instance. The default for this is "https://api.agena.ai". To change this, for example:
+
+```python
+example_user.set_server_url("http://localhost:8080")
+```
+
+If you'd like to reset the server URL to the default, you can run:
+
+```python
+example_user.reset_server_url()
+```
+
 ## 7.2 Model Calculation
 
 Using the login instance created, you can do further operations such as calculations and sensitivity analysis.
