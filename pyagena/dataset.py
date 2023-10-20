@@ -86,6 +86,10 @@ class Dataset():
         obs_del = [obs for obs in self.observations if obs["node"]==node_id and obs["network"]==network_id].pop()
         self.observations.remove(obs_del)
         print("The observation is successfully removed")
+    
+    def clear_all_observations(self):
+          self.observations = []
+          print("All observations in the dataset are successfully cleared")
 
     def _convert_to_dotdict(self):
         dot_obs = []
