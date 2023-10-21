@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 class Model():         
-     def __init__(self, networks:list[Network]=None, id=None, datasets=None, network_links=None, settings=None):
+     def __init__(self, networks=None, id=None, datasets=None, network_links=None, settings=None):
           
           if networks is not None:
                self.networks = networks
@@ -355,7 +355,7 @@ class Model():
                dataset._convert_to_dotdict()
                print(f"Results are successfully imported to case {dataset.id}")
 
-     def export_data(self, filename, dataset_ids:list[str]=None, include_inputs = True, include_outputs = True):
+     def export_data(self, filename, dataset_ids=None, include_inputs = True, include_outputs = True):
 
           if dataset_ids is None:
                ds_to_export = self.datasets
