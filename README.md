@@ -13,7 +13,7 @@
 
 # 1. Description
 
-pyagena is a python environment for creating, modifying, and parsing Bayesian network models, and sending the models to agena.ai Cloud or to local agena.ai developer API to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in python and export to .cmpx and .json files locally, as well as authenticate with agena.ai Cloud or use local agena.ai developer API for model calculations and sensitivity analyses. In the rest of this document, the python environment for agena.ai is referred to as pyagena. pyagena is developed for Python 3.
+pyagena is a python environment for creating, modifying, and parsing Bayesian network models, and sending the models to agena.ai Cloud or to local agena.ai developer API to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in python and export to .cmpx and .json files locally, as well as authenticate with agena.ai Cloud or use local agena.ai developer API for model calculations and sensitivity analyses. In the rest of this document, the python environment for agena.ai is referred to as pyagena. pyagena is developed for Python 3.8+.
 
 # 2. Prerequisites and Installation
 

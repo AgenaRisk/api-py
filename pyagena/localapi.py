@@ -59,7 +59,7 @@ def local_api_activate_license(key):
         os.chdir(cur_wd)
         raise ValueError("License key activation failed")
 
-def local_api_calculate(model:Model, dataset_ids:list[str]=None, cache_path = None):
+def local_api_calculate(model:Model, dataset_ids = None, cache_path = None):
     cur_wd = os.getcwd()
     os.chdir("./api/")
     
