@@ -51,7 +51,7 @@ class Model():
           this_net = Network(id=id, name=name, description=description)
           self.add_network(this_net)
 
-     def add_network(self, network):
+     def add_network(self, network:Network):
           if network.id in self._get_networks():
                raise ValueError("There is already a network with this id in the model")
           else:
@@ -74,18 +74,26 @@ class Model():
             
         return nets_list
 
-     def get_network(self, network_id):
-          if network_id not in self._get_networks():
-               raise ValueError(f"The model does not have a network with the id {network_id}")
+     def get_network(self, network_id=None, network_index = 0) -> Network:
+          if network_id is None:
+               network = self.networks[network_index]
+          else:
+               if network_id not in self._get_networks():
+                    raise ValueError(f"The model does not have a network with the id {network_id}")
           
-          network = [n for n in self.networks if n.id==network_id].pop()
+               network = [n for n in self.networks if n.id==network_id].pop()
+          
           return network
 
-     def get_dataset(self, dataset_id) -> Dataset:
-          if dataset_id not in self._get_datasets():
-               raise ValueError(f"The model does not have a dataset with the id {dataset_id}")
+     def get_dataset(self, dataset_id=None, dataset_index = 0) -> Dataset:
+          if dataset_id is None:
+               dataset = self.datasets[dataset_index]
+          else:
+               if dataset_id not in self._get_datasets():
+                    raise ValueError(f"The model does not have a dataset with the id {dataset_id}")
               
-          dataset = [d for d in self.datasets if d.id==dataset_id].pop()
+               dataset = [d for d in self.datasets if d.id==dataset_id].pop()
+          
           return dataset
 
      def add_network_link(self, source_network_id, source_node_id, target_network_id, target_node_id, link_type="Marginals", pass_state=None):

@@ -101,12 +101,18 @@ class Network():
             
         return nodes_list
     
-    def get_node(self, node_id) -> Node:
-          if node_id not in self._get_nodes():
-               raise ValueError(f"The network {self.id} does not have a node with the id {node_id}")
+    def get_node(self, node_id=None, node_index = 0) -> Node:
           
-          node = [n for n in self.nodes if n.id==node_id].pop()
-          return node
+        if node_id is None:
+            node = self.nodes[node_index]
+        
+        else:
+            if node_id not in self._get_nodes():
+                raise ValueError(f"The network {self.id} does not have a node with the id {node_id}")
+          
+            node = [n for n in self.nodes if n.id==node_id].pop()
+        
+        return node
     
     def __str__(self) -> str:
         if self.nodes is not None:
