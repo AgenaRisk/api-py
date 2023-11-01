@@ -105,7 +105,8 @@ class Dataset():
 
         for ix, res in enumerate(self.results):
             dot_res.append(dotdict(res))
-            dot_res[ix].summaryStatistics = dotdict(res["summaryStatistics"])
+            if "summaryStatistics" in dot_res[ix].keys():
+                dot_res[ix].summaryStatistics = dotdict(res["summaryStatistics"])
             for dx, rv in enumerate(res["resultValues"]):
                 dot_res[ix].resultValues[dx] = dotdict(rv)
         

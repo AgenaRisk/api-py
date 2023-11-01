@@ -343,12 +343,13 @@ class Model():
           else:
                raise ValueError("Data file should be in .csv or .json format")
           
-     def create_csv_template(self):
+     def create_csv_template(self, filename=None):
           headers = [(nt.id+"."+nd.id) for nt in self.networks for nd in nt.nodes]
           rows = [ds.id for ds in self.datasets]
           test = pd.DataFrame(columns=headers, index=rows)
           test.index.name = "Case"
-          filename = self.id+"_Data.csv"
+          if filename is None:
+               filename = "New_Data_Template.csv"
           test.to_csv(filename)
 
      def _import_results(self, file_path):
@@ -469,21 +470,30 @@ class Model():
                          this_node = Node(id=nd["id"], name=nd["name"], type=nd["configuration"]["type"], simulated=True)
                     nodes_list[idx].append(this_node)
 
-          # adding parents to all nodes before defining distr_type, states, probabilities, expressions, and partitions
+          #setting distr type and states for Manual distr types
+          for idx, ntw in enumerate(agena_nodes):
+               for ix, nd in enumerate(ntw):
+                    this_node = nodes_list[idx][ix]
+                    if nd["configuration"]["table"]["type"] == "Manual":
+                         this_node.set_distr_type(nd["configuration"]["table"]["type"], from_cmpx=True)    
+                    
+                    if this_node.distr_type == "Manual":
+                         this_node.set_states(nd["configuration"]["states"], from_cmpx=True)                
+
+          # adding parents to all nodes before defining probabilities, expressions, and partitions
           for idx, ntw in enumerate(nodes_list):
                for nd in ntw:
                     for link in agena_node_links[idx]:
                          if nd.id == link[0]:
                               nd._addparentbyID(ntw,link[1])
 
-          # setting distr_type, states, probabilities, expressions, and partitions for all nodes
+          # setting distr_type, probabilities, expressions, and partitions for all nodes
           for idx, ntw in enumerate(agena_nodes):
                for ix, nd in enumerate(ntw):
                     this_node = nodes_list[idx][ix]
-                    this_node.set_distr_type(nd["configuration"]["table"]["type"], from_cmpx=True)
+                    this_node.set_distr_type(nd["configuration"]["table"]["type"], from_cmpx=True)  
 
                     if this_node.distr_type == "Manual":
-                         this_node.states = nd["configuration"]["states"]
                          this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True)
                     if this_node.distr_type == "Expression":
                          this_node.set_expressions(nd["configuration"]["table"]["expressions"], from_cmpx=True)

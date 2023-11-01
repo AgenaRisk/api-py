@@ -116,16 +116,18 @@ class Node():
             return "Node: % s (% s)" % (self.name, self.type)
     
 
-    def set_states(self, states):
+    def set_states(self, states, from_cmpx=False):
         
         previous_states = len(self.states)
 
         self.states = states
         if len(self.states) != previous_states:
             self._reset_probabilities()
-            print("The node states are updated, the NPT values are reset to uniform because the number of states has changed")
+            if not from_cmpx:
+                print("The node states are updated, the NPT values are reset to uniform because the number of states has changed")
         else:
-            print("The node states are updated")
+            if not from_cmpx:
+                print("The node states are updated")
             
     def add_parent(self, new_parent: "Node", from_cmpx=False):
 
