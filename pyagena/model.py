@@ -20,7 +20,7 @@ class Model():
                self.settings = settings
 
           if id is not None:
-               self.id = id
+               self.id = str(id)
           else:
                self.id = None
 
@@ -56,7 +56,7 @@ class Model():
                raise ValueError("There is already a network with this id in the model")
           else:
                self.networks.append(network)
-               print("The network is successfully added to the model")
+               print(f"The network {network.id} is successfully added to the model")
 
      def remove_network(self, id):
           network = self.get_network(id)
@@ -208,7 +208,7 @@ class Model():
                ds = self.datasets[0]
           else:
                if dataset_id not in self._get_datasets():
-                    raise ValueError("The dataset does not exist")
+                    raise ValueError(f"The dataset {dataset_id} does not exist")
                
                ds = self.get_dataset(dataset_id)
           
@@ -219,7 +219,7 @@ class Model():
                ds = self.datasets[0]
           else:
                if dataset_id not in self._get_datasets():
-                    raise ValueError("The dataset does not exist")
+                    raise ValueError(f"The dataset {dataset_id} does not exist")
                
                ds = self.get_dataset(dataset_id)
 
@@ -227,7 +227,7 @@ class Model():
 
      def clear_dataset_observations(self, dataset_id):
           if dataset_id not in self._get_datasets():
-               raise ValueError("The dataset does not exist")
+               raise ValueError(f"The dataset {dataset_id} does not exist")
 
           ds = self.get_dataset(dataset_id)     
 

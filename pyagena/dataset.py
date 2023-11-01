@@ -7,7 +7,7 @@ class dotdict(dict):
 class Dataset():
     def __init__(self, id, observations = None, results=None):
          
-        self.id = id
+        self.id = str(id)
         if observations is not None:
             self.observations = observations
         else:
@@ -69,17 +69,26 @@ class Dataset():
 
             if obs_rewrite:
                 self.observations[rewrite_idx] = new_obs
-                print(f"The observation of {value} is entered to the node {node_id}")
+                if variable_name is None:
+                    print(f"The observation of {value} is entered to the node {node_id}")
+                else:
+                    print(f"The observation of {variable_name} = {value} is entered to the node {node_id}")
             if not obs_rewrite:
                 self.observations.append(new_obs)
                 if var_obs_check:
                     print(f"The observation of {value} is entered to the node {node_id} with existing variable observations, in calculations the variable observations will be ignored")
                 else:
-                    print(f"The observation of {value} is entered to the node {node_id}")
+                    if variable_name is None:
+                        print(f"The observation of {value} is entered to the node {node_id}")
+                    else:
+                        print(f"The observation of {variable_name} = {value} is entered to the node {node_id}")
 
         else:
             self.observations.append(new_obs)
-            print(f"The observation of {value} is entered to the node {node_id}")
+            if variable_name is None:
+                print(f"The observation of {value} is entered to the node {node_id}")
+            else:
+                print(f"The observation of {variable_name} = {value} is entered to the node {node_id}")
 
     def remove_observation(self, network_id, node_id):
 

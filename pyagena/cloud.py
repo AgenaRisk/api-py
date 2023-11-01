@@ -56,11 +56,16 @@ class login():
             print("Clod operation results will not display detailed debug messages")
 
     def set_server_url(self, url):
+        last_char = url[-1]
+        if last_char == "/":
+            url = url[:-1]
+
         self.server = url
         print(f"The root of the server URL for cloud operations is set as {url}")
 
     def reset_server_url(self):
         self.server = "https://api.agena.ai"
+        print(f"The root of the server URL for cloud operations is reset to https://api.agena.ai")
 
     def refresh_auth(self):
         ref_url = "https://auth.agena.ai/realms/cloud/protocol/openid-connect/token"

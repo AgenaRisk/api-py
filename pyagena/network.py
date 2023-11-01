@@ -6,17 +6,17 @@ import matplotlib.pyplot as plt
 class Network():
     def __init__(self, id, name=None, description=None, nodes=None):
             
-        self.id = id
+        self.id = str(id)
 
         if name is None:
             self.name = self.id
         else:
-            self.name = name
+            self.name = str(name)
         
         if description is None:
             self.description = "New Network"
         else:
-            self.description = description
+            self.description = str(description)
         
         if nodes is not None:
             self.nodes = nodes
@@ -80,18 +80,18 @@ class Network():
 
     def add_node(self, new_node: Node):
         if new_node.id in self._get_nodes():
-            raise ValueError("There is already a node in the network with this id")
+            raise ValueError(f"There is already a node in the network with the id {new_node.id}")
         else:
             self.nodes.append(new_node)
-            print(f"The node {new_node.id} is successfully added to the network.")
+            print(f"The node {new_node.id} is successfully added to the network")
 
     def remove_node(self, node_id):  
         old_node = self.get_node(node_id)
         if old_node in self.nodes:
             self.nodes.remove(old_node)
-            print(f"The node {node_id} is successfully removed from the network. If {node_id} had any child nodes in the network, make sure to adjust their parents accordingly")
+            print(f"The node {node_id} is successfully removed from the network - if {node_id} had any child nodes in the network, make sure to adjust their parents accordingly")
         else:
-            raise ValueError("This node is not in the network")
+            raise ValueError(f"The network {self.id} does not have a node with the id {node_id}")
 
     def _get_nodes(self):
         nodes_list = []

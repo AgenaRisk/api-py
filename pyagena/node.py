@@ -244,7 +244,7 @@ class Node():
                 self.set_distr_type("Partitioned", from_cmpx=from_cmpx)
             else:
                 self.expressions = None
-                raise ValueError("One or more given partition parent is not a parent of the node {self.name}")
+                raise ValueError(f"One or more given partition parents is not a parent of the node {self.name}")
 
     def _get_variable_names(self):
         var_names = []
@@ -278,7 +278,6 @@ class Node():
                 (k, v), = vr.items()
                 if k == variable_name:
                     self.variables.pop(ix)
-            #self.variables.pop(variable_name)
             print("The variable (constant) is removed from the node")
         else:
             raise ValueError(f"The node does not have a variable called {variable_name}")
