@@ -10,111 +10,198 @@ import json
 import subprocess
 
 def local_api_clone():
-    send_command = os.system("git clone https://github.com/AgenaRisk/api.git")
+    send_command = subprocess.run("git clone https://github.com/AgenaRisk/api.git", capture_output=True, text=True)
 
-    if send_command == 0:
+    already = "already exists and is not an empty directory"
+    if already in send_command.stderr:
+        raise ValueError("API clone failed - destination path 'api' already exists and is not an empty directory")
+    else:
+        print(send_command.stdout)
+        print(send_command.stderr)
         print("The local api environment is cloned to the working directory successfully")
 
-def local_api_compile():
+def local_api_compile(verbose = False):
     cur_wd = os.getcwd()
     os.chdir("./api/")
 
-    os.system("git checkout master")
-    os.system("git pull")
-    rel_tag = os.popen("git describe --tags --abbrev=0").read()
-    os.system("git checkout " + rel_tag[:-1])
+    checkout = subprocess.run("git checkout master", capture_output=True, text=True)
+    if verbose:
+        print(checkout.stdout)    
+    pull = subprocess.run("git pull", capture_output=True, text=True)
+    if verbose:
+        print(pull.stdout)
+    get_tag = subprocess.run("git describe --tags --abbrev=0", capture_output=True, text=True)
+    tag = get_tag.stdout.strip()
+    tag_comm = "git checkout " + tag
+
+    updated = subprocess.run(tag_comm, capture_output=True, text=True)
+    if verbose:
+        print(updated.stderr)
+
     send_command = os.system("mvn clean compile")
+    os.chdir(cur_wd)
 
     if send_command == 0:
         print("The local api environment is compiled with maven successfully")
-        os.chdir(cur_wd)
     else:
-        os.chdir(cur_wd)
         raise ValueError("maven compile has failed")
 
-def local_api_activate_license(key):
+def local_api_activate_license(key, verbose = False):
     cur_wd = os.getcwd()
     os.chdir("./api/")
 
     if platform == "win32":
 
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyActivate --key ' + key + '`\\"\\""'
-        send_command = subprocess.check_output(command)
+        send_command = subprocess.run(command, capture_output=True, text=True)
+        os.chdir(cur_wd)
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
 
-        command = 'mvn exec:java@activate -Dexec.args="--keyActivate --key' + key + '"'
-        send_command = subprocess.check_output(command)
-
-    if send_command == 0:
-        full_response = str(send_command)
-        already = "AgenaRisk already activated"
-        if already in full_response:
-            os.chdir(cur_wd)
-            raise ValueError("AgenaRisk already activated")
-        else:
-            print("License key activated successfully")
-            os.chdir(cur_wd)
-    else:
+        command = 'mvn exec:java@activate -Dexec.args="--keyActivate --key ' + key + '"'
+        send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
-        raise ValueError("License key activation failed")
 
-def local_api_calculate(model:Model, dataset_ids = None, cache_path = None):
+    if len(send_command.stderr)>0:
+        if verbose:
+            print(send_command.stdout)
+            print(send_command.stderr)
+        raise ValueError("License key activation failed")
+    else:
+        already = "Product already activated"
+        if already in send_command.stdout:
+            if verbose:
+                print(send_command.stdout)
+            raise ValueError(already)
+        else:
+            if verbose:
+                print(send_command.stdout)
+            print("License key activated successfully")
+
+def local_api_deactivate_license(verbose = False):
+    cur_wd = os.getcwd()
+    os.chdir("./api/")
+    
+    if platform == "win32":    
+        command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyDeactivate`\\"\\""'
+        send_command = subprocess.run(command, capture_output=True, text=True)
+        os.chdir(cur_wd)
+
+    elif platform == "darwin" or platform == "linux" or platform == "linux2":
+        command = 'mvn exec:java@activate -Dexec.args="--keyDeactivate"'
+        send_command = subprocess.run(command, capture_output=True, text=True)
+        os.chdir(cur_wd)
+
+    if len(send_command.stderr) > 0:
+        if verbose:
+            print(send_command.stdout)
+            print(send_command.stderr)
+        limit_reach = "The license has reached it's allowed deactivations limit"
+        if limit_reach in send_command.stderr:
+            raise ValueError(limit_reach)
+        else:
+            raise ValueError("Deactivation failed")
+    else:
+        old_key = send_command.stdout.split("Key released: ")[1].split("\n")[0]
+        if verbose:
+            print(send_command.stdout)
+        print(f"Deactivation successful - license key {old_key} is released")
+
+def local_api_show_license(verbose = False):
+    cur_wd = os.getcwd()
+    os.chdir("./api/")
+
+    if platform == "win32":
+        command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--licenseSummary`\\"\\""'
+        send_command = subprocess.run(command, capture_output=True, text=True)
+        os.chdir(cur_wd)
+    
+    elif platform == "darwin" or platform == "linux" or platform == "linux2":
+        command = 'mvn exec:java@activate -Dexec.args="--licenseSummary"'
+        send_command = subprocess.run(command, capture_output=True, text=True)
+        os.chdir(cur_wd)
+
+    if len(send_command.stderr) > 0:
+        if verbose:
+            print(send_command.stdout)
+            print(send_command.stderr)
+        raise ValueError("Error when attempting to show license")
+    else:
+        summary = send_command.stdout.split("{")[1].split("}")[0].strip()
+        statements = []
+
+        sum_list = summary.replace("'","").replace('"','').split("\n          ")
+        for st in sum_list:
+            statements.append(st.split(": ")[0] + ": " + st.split(": ")[1].replace(",",""))
+
+        if verbose:
+            print(send_command.stdout)
+
+        for st in statements:
+            print(st)
+        
+def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verbose = False):
     cur_wd = os.getcwd()
     os.chdir("./api/")
     
     tempdir = tempfile.TemporaryDirectory()
 
     if dataset_ids is not None:
+        for ds in dataset_ids:
+            if ds not in model._get_datasets():
+                os.chdir(cur_wd)
+                raise ValueError(f"The model does not have a dataset {ds}")
+            
         data_json = model._ds_to_json(dataset_ids)
     else:
         data_json = model._ds_to_json() #if dataset ids are not specified, all datasets in the model are calculated
-        
-    if platform == "win32":
-        model_path = tempdir.name + "\\" + data_json[0]["id"] + "_model.cmpx"
-        data_path = tempdir.name + "\\" + data_json[0]["id"] + "_dataset.json"
 
-        model_file = model.save_to_file(model_path)
-        with open(data_path, "w") as outfile:
-            json.dump(data_json, outfile)
+    model_path = tempdir.name + "/" + data_json[0]["id"] + "_model.cmpx"
+    data_path = tempdir.name + "/" + data_json[0]["id"] + "_dataset.json"
+
+    model_file = model.save_to_file(model_path, strip_data=True)
+    with open(data_path, "w") as outfile:
+        json.dump(data_json, outfile)
+
+    if platform == "win32":
 
         if cache_path is None:
-            out_path = tempdir.name + "\\" + data_json[0]["id"] + "_output.json"
+            out_path = tempdir.name + "/" + data_json[0]["id"] + "_output.json"
             command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\'`\\"\\""'
 
         else:
             out_path = cache_path
-            command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache`\\"\\""'
+            command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--directoryWorking \'' + cur_wd + '\' --model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache`\\"\\""'
 
-        send_command = os.system(command)
+        send_command = subprocess.run(command, capture_output=True, text=True)
+        os.chdir(cur_wd)
     
     elif platform == "darwin" or platform == "linux" or platform == "linux2":       
-        model_path = tempdir.name + "/" + data_json[0]["id"] + "_model.cmpx"
-        data_path = tempdir.name + "/" + data_json[0]["id"] + "_dataset.json"
-
-        model_file = model.save_to_file(model_path)
-        with open(data_path, "w") as outfile:
-            json.dump(data_json, outfile)
 
         if cache_path is None:
             out_path = tempdir.name + "/" + data_json[0]["id"] + "_output.json"
             command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\'"'
         else:
             out_path = cache_path
-            command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache"'
+            command = 'mvn exec:java@calculate -Dexec.args="--directoryWorking \'' + cur_wd + '\' --model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache"'
 
-        send_command = os.system(command)
+        send_command = subprocess.run(command, capture_output=True, text=True)
 
-    if send_command == 0:
-        model._import_results(out_path)
-        print("The calculation is completed, the dataset in the model now contains new calculation results")
         os.chdir(cur_wd)
-    
-    else:
-        os.chdir(cur_wd)
+
+    if len(send_command.stderr) > 0:
+        if verbose:
+            print(send_command.stdout)
+            print(send_command.stderr)
         raise ValueError("Calculation failed")
+    else:
+        model._import_results(out_path)
+        if verbose:
+            print(send_command.stdout)
+        print("The calculation is completed, the dataset in the model now contains new calculation results")
 
-def local_api_sensitivity_analysis(model:Model, sens_config):
+    
+def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
     def _results_to_dotdict(input):
         dot_results = dotdict(input)
@@ -128,48 +215,45 @@ def local_api_sensitivity_analysis(model:Model, sens_config):
 
         return dot_results
 
-
     cur_wd = os.getcwd()
     os.chdir("./api/")
 
     tempdir = tempfile.TemporaryDirectory()
 
-    if platform == "win32":
-        model_path = tempdir.name + "\\" + "model.cmpx"
-        config_path = tempdir.name + "\\" + "sens_config.json"
-        out_path = tempdir.name + "\\" + "output.json"
+    model_path = tempdir.name + "/" + "model.cmpx"
+    config_path = tempdir.name + "/" + "sens_config.json"
+    out_path = tempdir.name + "/" + "output.json"
 
-        model_file = model.save_to_file(model_path)
-        with open(config_path, "w") as outfile:
-            json.dump(sens_config, outfile)
+    model_file = model.save_to_file(model_path)
+    with open(config_path, "w") as outfile:
+        json.dump(sens_config, outfile)
+
+    if platform == "win32":
 
         command = 'powershell -command "mvn exec:java@sensitivity \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --config \'' + config_path + '\'`\\"\\""'
-        send_command = os.system(command)
+        send_command = subprocess.run(command, capture_output=True, text=True)
+        os.chdir(cur_wd)
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
         
-        model_path = tempdir.name + "/" + "model.cmpx"
-        config_path = tempdir.name + "/" + "sens_config.json"
-        out_path = tempdir.name + "/" + "output.json"
-
-        model_file = model.save_to_file(model_path)
-        with open(config_path, "w") as outfile:
-            json.dump(sens_config, outfile)
-
         command = 'mvn exec:java@sensitivity -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --config \'' + config_path + '\'"'
-        send_command = os.system(command)
+        send_command = subprocess.run(command, capture_output=True, text=True)
+        os.chdir(cur_wd)
 
-    if send_command == 0:
+    if len(send_command.stderr) > 0:
+        if verbose:
+            print(send_command.stdout)
+            print(send_command.stderr)
+        raise ValueError("Sensitivity analysis failed")
+    else:
         with open(out_path, "r") as file:
             results_string = file.read()
         sens_results = json.loads(results_string)
         sens_results = _results_to_dotdict(sens_results)
 
-        os.chdir(cur_wd)
+        if verbose:
+            print(send_command.stdout)
+
         return(sens_results)
-    
-    else:
-        os.chdir(cur_wd)
-        raise ValueError("Sensitivity analysis failed")
-    
+
 

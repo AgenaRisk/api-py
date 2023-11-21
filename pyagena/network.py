@@ -48,6 +48,7 @@ class Network():
     def create_node(self, id, name=None, description=None, type=None, simulated=None, states=None):
         this_node = Node(id=id, name=name, description=description, type=type, simulated=simulated, states=states)
         self.add_node(this_node)
+        return this_node
 
     def create_edge(self, child_id, parent_id):
         child_node = self.get_node(child_id)

@@ -55,25 +55,83 @@ System packages used in pyagena: `sys`, `os`, `tempfile`, `json`, `getpass`, `ti
 
 # 3. Structure of pyagena Classes
 
-The Bayesian networks (BNs) in pyagena are represented with several objects: `Node`, `Network`, `Dataset`, and `Model`. These python objects generally follow their equivalents defined in agena.ai models.
+The Bayesian networks (BNs) in pyagena are represented with several objects: `Model`, `Network`, `Node`, and `Dataset`. These python objects generally follow their equivalents defined in agena.ai models.
 
-## 3.1 `Node` objects
+## 3.1 `Model` objects
+
+These represent the overall BN. A single .cmpx file corresponds to a singe `Model`. A BN model can have multiple networks with their own nodes, links between these networks, and datasets. 
+
+## 3.1.1 `id`
+
+Id of the Model, optional. 
+
+## 3.1.2 `networks`
+
+A list of all the `Network` objects in the model. This field will be populated with the `create_network()` method. See below for more information about `Network`s.
+
+## 3.1.3 `datasets`
+
+A list of all the `Dataset` objects in the model. When a new `Model` is created, it will have the default first dataset "Case 1", and it is possible to add new datasets to the model afterwards with the `create_dataset()` method. See below for more information about `Dataset`s.
+
+## 3.1.4 `network_links`
+
+If the `Model` has multiple networks, it is possible to have links between these networks, following the agena.ai model network_links format.
+
+To see how to create these links, see `add_network_link()` function later in this document.
+
+## 3.1.5 `settings`
+
+`Model` settings for calculations. It includes the following fields (the values in parantheses are the defaults if settings are not specified for a model):
+
+* discreteTails (False)
+* sampleSizeRanked (5)
+* convergence (0.01)
+* iterations (50)
+* tolerance (1)
+
+Model settings can be provided when creating a new model, if not provided the model will come with the default settings. Default settings can be changed later on (with the method `change_settings()`), or model settings can be reset back to default values (with the method `default_settings()`). See the correct input parameter format for these functions in the following section. Individual fields in model setting can be adjusted with `change_settings()` too.
+
+## 3.2 `Network` objects 
+
+These represent each network in a BN model. Networks consist of nodes and in a BN model there might be more than one network. These networks can also be linked to each other with the use of input and output nodes. For such links, see `Model.network_links` field.
+
+The fields that define a `Network` object are as follows:
+
+### 3.2.1 `id`
+
+Id of the `Network`. Mandatory field to create a new network.
+
+### 3.2.2 `name`
+
+Name of the network, optional. If not specified, `id` of the network is passed onto `name` field as well.
+
+### 3.2.3 `description`
+
+Description, optional. If not specified, the string "New Network" is assigned to `description` field by default.
+
+### 3.2.4 `nodes`
+
+A list of `Node` objects which are in the network. See below for more information about `Node`s.
+
+Note that `Network` objects do have a `create_edge()` method but do not have a `links` field unlike the agena.ai models. As explained in `Node.parents` section below, this information is stored in `Node` objects in the python environment. When importing a .cmpx model, the information in `links` field is used to populate `Node.parents` fields for each node. Similarly, when exporting to a .cmpx/.json file, the parent-child information in `Node.parents` field is used to create the `links` field of the `Network` field of the .cmpx/.json.
+
+## 3.3 `Node` objects
 
 These represent the nodes in a BN. The fields that define a `Node` object are as follows:
 
-### 3.1.1 `id`
+### 3.3.1 `id`
 
 Mandatory field to create a new `Node` object. This is the unique identifier of agena.ai model nodes.
 
-### 3.1.2 `name`
+### 3.3.2 `name`
 
 Name of the node, optional. If not defined, `id` of the node will be passed onto the `name` field too.
 
-### 3.1.3 `description`
+### 3.3.3 `description`
 
 Description of the node, optional. If not defined, "New Node" will be assigned to the `description` field.
 
-### 3.1.4 `type`
+### 3.3.4 `type`
 
 Node type, it can be:
 
@@ -86,17 +144,17 @@ Node type, it can be:
 
 If it's not specified when creating a new node, the new node is "Boolean" by default if it's not a simulation node; and it is "ContinuousInterval" by default if it's a simulation node.
 
-### 3.1.5 `parents`
+### 3.3.5 `parents`
 
-Other `Node` objects can be pointed as parents of a `Node` object. It is not recommended to modify this field manually, to add parents to a node, see the node method `add_parent()` or network method `create_edge()`.
+Other `Node` objects can be pointed as parents of a `Node` object. To add parents to a node, see the node method `add_parent()` or network method `create_edge()`.
 
-Something to keep in mind: the parent-child relationship information is stored at `Node` level in the python environment thanks to this field, as opposed to the separate `links` field of a .cmpx/.json file for the agena.ai models. When importing or exporting .cmpx files you do not need to think about this difference, as the cmpx parser and writer functions handle the correct formats. This difference allows adding and removing `Node` objects as parents.
+Something to keep in mind: the parent-child relationship information is stored at `Node` level in the python environment thanks to this field, as opposed to the separate `links` field of a .cmpx/.json file for the agena.ai models. When importing or exporting .cmpx files you do not need to think about this difference, as the file import and export functions handle the correct formats. This difference allows adding and removing `Node` objects as parents.
 
-### 3.1.6 `simulated`
+### 3.3.6 `simulated`
 
 A boolean field to indicate whether the node is a simulation node or not.
 
-### 3.1.7 `distr_type`
+### 3.3.7 `distr_type`
 
 The table type of the node, it can be:
 
@@ -106,7 +164,7 @@ The table type of the node, it can be:
 
 To set the table (distribution) type of a node, see the node method `set_distr_type()` or the network method `set_node_distr_type()`.
 
-### 3.1.8 `states`
+### 3.3.8 `states`
 
 States of the node (if not simulated). If states are not specified, depending on the `type`, sensible default states are assigned. Default states for different node types are:
 
@@ -120,11 +178,11 @@ And for a node with the table type (`distr_type`) "Expression", the default expr
 
 To set new states to an existing nodes, see the node method `set_states()` or the network method `set_node_states()`.
 
-### 3.1.9 `probabilities`
+### 3.3.9 `probabilities`
 
 If the table type (`distr_type`) of the node is "Manual", the node will have state probabilities, values in its NPT. This field is a list of lists containing these values. The length of the list depends on the node states and the number of its parents. To see how to set probability values for a node, see the node method `set_probabilities()` or network method `set_node_probabilities()`. 
 
-### 3.1.10 `expressions`
+### 3.3.10 `expressions`
 
 If the table type (`distr_type`) of the node is "Expression" or "Partitioned", the node will have expression(s) instead of the manually defined NPT values.
 
@@ -172,91 +230,33 @@ Ranked
 
 For further information on expressions, please refer to [agena.ai modeller manual, Sections 22 (Statistical distributions) and 23 (Expressions)](https://resources.agena.ai/materials/AgenaRisk%2010%20Desktop%20User%20Manual.pdf).
 
-### 3.1.11 `partitions`
+### 3.3.11 `partitions`
 
 If the table type (`distr_type`) of the node is "Partitioned", in addition to the expressions, the node will have the `partitions` field. This field is a list of strings, which are `id`s of the parent nodes on which the node expression is partitioned.
 
-### 3.1.12 `variables`
+### 3.3.12 `variables`
 
 The node variables are called constants on agena.ai Modeller. This field, if specified, sets the constant value for the node observations. For the correct syntax of defining a variable, see `set_variable()` function.
 
-## 3.2 `Network` objects 
+## 3.4 `Dataset` objects 
 
-These represent each network in a BN. Networks consist of nodes and in a BN model there might be more than one network. These networks can also be linked to each other with the use of input and output nodes. For such links, see `Model.network_links` field later in this document.
+These represent the set of observations in a BN model (cases). A `Model` can have multiple `Dataset` objects in its `datasets` field.  When a new `Model` is created, it always comes with a default `Dataset` object with the `id` "Case 1" and with blank observations. It is possible to add more datasets (cases) with their `id`s. Each `Dataset` object under a `Model` can be called a new "case".
 
-The fields that define a `Network` object are as follows:
-
-### 3.2.1 `id`
-
-Id of the `Network`. Mandatory field to create a new network.
-
-### 3.2.2 `name`
-
-Name of the network, optional. If not specified, `id` of the network is passed onto `name` field as well.
-
-### 3.2.3 `description`
-
-Description, optional. If not specified, the string "New Network" is assigned to `description` field by default.
-
-### 3.2.4 `nodes`
-
-A list of `Node` objects which are in the network. These `Node` objects have their own fields which define them as explained above in this document.
-
-Note that `Network` objects do have a `create_edge()` method but do not have a `links` field unlike the agena.ai models. As explained in `Node.parents` section above, this information is stored in `Node` objects in the python environment. When importing a .cmpx model, the information in `links` field is used to populate `Node.parents` fields for each node. Similarly, when exporting to a .cmpx/.json file, the parent-child information in `Node.parents` field is used to create the `links` field of the `Network` field of the .cmpx/.json.
-
-## 3.3 `Dataset` objects 
-
-These represent the set of observations in a BN (cases). A `Model` can have multiple `Dataset` objects in its `datasets` field.  When a new `Model` is created, it always comes with a default `Dataset` object with the `id` "Case 1" and with blank observations. It is possible to add more datasets (cases) with their `id`s. Each `Dataset` object under a `Model` can be called a new "case".
-
-### 3.3.1 `id`
+### 3.4.1 `id`
 
 Id of the dataset (case).
 
-### 3.3.2 `observations`
+### 3.4.2 `observations`
 
 Under each dataset (case), observations for all the observed nodes in all the networks of the model (in terms of their states or values) are listed. If it's hard evidence, observation for a node will have a single value with the weight of 1. If a node in the model has a value in its `variable` field, this value will be passed onto the dataset (case) with the weight of 1.
 
-### 3.3.3 `results`
+### 3.4.3 `results`
 
 This field is defined only for when a .cmpx model with calculations is imported or after the model is calculated with the agena.ai Cloud or local API. When creating a new BN in the python environment, this field is not filled in. The `results` field stores the posterior probability and inference results upon model calculation on agena.ai Cloud or local agena.ai developer API.
 
-## 3.4 `Model` objects
-
-These represent the overall BN. A single .cmpx file corresponds to a singe `Model`. A BN model can have multiple networks with their own nodes, links between these networks, and datasets. 
-
-## 3.4.1 `id`
-
-Id of the Model, optional. 
-
-## 3.4.2 `networks`
-
-A list of all the `Network` objects in the model. This field will be populated with the `create_network()` method.
-
-## 3.4.3 `datasets`
-
-A list of all the  `Dataset` objects in the model. When a new `Model` is created, it will have the default first dataset "Case 1", and it is possible to add new datasets to the model afterwards with the `create_dataset()` method.
-
-## 3.4.4 `network_links`
-
-If the `Model` has multiple networks, it is possible to have links between these networks, following the agena.ai model network_links format.
-
-To see how to create these links, see `add_network_link()` function later in this document.
-
-## 3.4.5 `settings`
-
-`Model` settings for calculations. It includes the following fields (the values in parantheses are the defaults if settings are not specified for a model):
-
-* discreteTails (False)
-* sampleSizeRanked (5)
-* convergence (0.01)
-* iterations (50)
-* tolerance (1)
-
-Model settings can be provided when creating a new model, if not provided the model will come with the default settings. Default settings can be changed later on (with the method `change_settings()`), or model settings can be reset back to default values (with the method `default_settings()`). See the correct input parameter format for these functions in the following section. Individual fields in model setting can be adjusted with `change_settings()` too.
-
 # 4. Class and Instance Methods
 
-The `Node`, `Network`, and `Model` objects have their own respective methods to help their definition and manipulate their fields. The python instance methods are used with the `.` sign following an instance of the class. For example,
+The `Model`, `Network`, `Node`, and `Dataset` objects have their own respective methods to help their definition and manipulate their fields. The python instance methods are used with the `.` sign following an instance of the class. For example,
 
 ```python
 example_node.add_parent(example_parent_node)
@@ -274,64 +274,161 @@ or
 example_model.create_dataset(example_case)
 ```
 
-## 4.1 `Node` methods
+## 4.1 `Model` methods
 
-`Node` objects are created in a `Network` object (see Section 4.2). Once the nodes of a network are created, it is possible to modify them.
+A `Model` object consists of networks, network links, datasets, and settings. Once a new `Model` is created, it is possible to create `Network`s and `Dataset`s in it. By default, a new `Model` object comes with a single empty dataset (case) called "Case 1". Following methods can be used to modify `Model` objects: 
 
-Some `Node` fields can be modified with a direct access to the field. For example, to update the name or a description information of a `Node`, simply use:
+### 4.1.1 `create_network(id, name=None, description=None)`
+
+A method to create a new `Network` object in a `Model` and add it to the `networks` field of the `Model` object. The input `id` is mandatory. The new `Network` object is added to the `Model` if the `Model` does not already have a `Network` with the given id.
+
+### 4.1.2 `remove_network(id)`
+
+A method to remove an existing `Network` object from the model using its `id`. Note that removing a `Network` from a `Model` doesn't automatically remove its possible network links to other `Network`s in the model. `network-links` field of a `Model` should be adjusted accordingly if needed.
+
+### 4.1.3 `get_network(network_id)`
+
+A method to access a `Network` object in a `Model`. The `Network` can be assigned to a variable and used.
+
+### 4.1.4 `add_network_link(source_network_id, source_node_id, target_network_id, target_node_id, link_type, pass_state = optional)`
+
+This is the method to add links to a model between its networks. These links start from a "source node" in a network and go to a "target node" in another network. To create the link, the source and target nodes in the networks need to be specified together with the network they belong to (by the `Node` and `Network` `id`s). The input parameters are as follows:
+
+* `source_network_id` = `Network.id` of the network the source node belongs to
+* `source_node_id` = `Node.id` of the source node
+* `target_network_id` = `Network.id` of the network the target node belongs to
+* `target_node_id` = `Node.id` of the target node
+* `link_type` = a string of the link type name. If not specified, it is `Marginals`. It can be one of the following:
+    * Marginals
+    * Mean
+    * Median
+    * Variance
+    * StandardDeviation
+    * LowerPercentile
+    * UpperPercentile
+    * State
+* `pass_state` = one of the `Node.states` of the source node. It has to be specified only if the `link_type` of the link is `"State"`, otherwise is left blank.
+
+Note that links between networks are allowed only when the source and target nodes fit certain criteria. Network links are allowed if:
+
+* Both nodes are the same type and either of them is simulated
+* Both nodes are the same type and neither is simulated and both have the same number of states
+* Source node is not numeric interval or discrete real and target node is simulated
+
+### 4.1.5 `remove_network_link(source_network_id, source_node_id,target_network_id, target_node_id)`
+
+A method to remove network links, given the `id`s of the source and target nodes (and the networks they belong to).
+
+### 4.1.6 `remove_all_network_links()`
+
+A method to remove all existing network links in a model.
+
+### 4.1.7 `create_dataset(dataset_id)`
+
+It is possible to add multiple cases to a model. These cases are new `Dataset` objects added to the `datasets` field of a model. Initially these cases have no observations and are only defined by their `id`s. The cases are populated with the `enter_observation()` function. The `create_dataset()` function takes the `id` of the new dataset to be added as input. 
+
+### 4.1.8 `remove_dataset(dataset_id)`
+
+A method to remove an existing scenario from the model. Input parameter `dataset_id` is the string which is the `id` of a dataset (case).
+
+### 4.1.9 `get_dataset(dataset_id)`
+
+A method to access a `Dataset` object in a `Model`. The `Dataset` can be assigned to a variable and used.
+
+### 4.1.10 `enter_observation(network_id, node_id, value, dataset_id = optional, variable_input = False)`
+
+A method to enter observation to a dataset in the model. Calls the dataset method `enter_observation` in the background.
+
+To enter the observation to a specific dataset (case), the dataset id must be given as the input parameter `dataset`. If `dataset` is left blank, the entered observation will by default go to the first dataset (case) of the model (called "Case 1" by default). This means that if there is no extra datasets created for a model (which by default comes with "Case 1"), any observation entered will be set for this dataset (mimicking the behaviour of entering observation to agena.ai Modeller).
+
+The observation is defined with the mandatory input parameters:
+* `network_id` = `Network.id` of the network the observed node belongs to
+* `node_id` = `Node.id` of the observed node
+* `value` = this parameter can be:
+    * the value or state of the observation for the observed node (if it is hard evidence)
+    * the array of multiple values and their weights (if it is soft evidence)
+    * the value of the observation for a variable of the observed node
+* `dataset_id` = optional, `Dataset.id` of the dataset which will have the observation
+* `variable_input` = a boolean parameter, set to `True` if the entered observation is a variable (constant) id for the node instead of an observed value.
+
+A node can have only one observation. This observation can be hard evidence (single state or a single value) or soft evidence (multiple states or multiple values with their weights). If the node has variable(s), the variable value(s) can also be observed. Each variable of the node can have an observation. If the node with variables has observations for its variables and an observation for itself, the variable observations will be ignored and only the node observation will be used in calculations.
+
+### 4.1.11 `remove_observation(network_id, node_id, dataset_id = optional)`
+
+A method to remove a specific observation from the model. Calls the dataset method `remove_observation` in the background. It requires the id of the node which has the observation to be removed and the id of the network the node belongs to.
+
+### 4.1.12 `clear_dataset_observations(dataset_id)`
+
+A method to clear all observations in a specific dataset (case) in the model. Calls the dataset method `clear_all_observations()` in the background.
+
+### 4.1.13 `clear_all_observations()`
+
+A method to clear all observations defined in a model. This function removes all observations from all datasets (cases).
+
+### 4.1.14 `change_settings(setting arguments)`
+
+A method to change model settings. The input parameters can be some or all of the `settings` fields. For example:
 
 ```python
-example_node.name = "new node name"
+example_model.change_settings(convergence=0.001, iterations=75)
 ```
 
-or
+### 4.1.15 `default_settings()`
 
-```python
-example_node.description = "new node description"
-```
+A method to reset model settings back to default values. The default values for model settings are:
 
-Because changing the name or description of a `Node` does not cause any compatibility issues. However, some fields such as table type or parents will have implications for other fields. Changing the node parents will change the size of its NPT, changing the node's table type from "Manual" to "Expression" will mean the state probabilities are now defined in a different way. Therefore, to modify such fields of a `Node`, use the corresponding method described below. These methods will ensure all the sensible adjustments are made when a field of a `Node` has been changed. To modify the nodes, you can either use the node methods described in this section, or the network methods described in the next section which allow you to modify nodes in the network. Once a network and its nodes are created, it is recommended to use the network methods to modify its nodes.
+* discreteTails = False
+* sampleSizeRanked = 5
+* convergence = 0.01
+* iterations = 50
+* tolerance = 1
 
-If you are directly working with `Node` objects, these are the methods `Node` objects can call for various purposes with their input parameters shown in parantheses:
+### 4.1.16 `save_to_file(filename)`
 
-### 4.1.1 `set_states(states)`
+A method to export the `Model` to a .cmpx or a .json file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a file in the correct format readable by agena.ai.
 
-The method to update the states of the `Node` object. The node states can be defined upon creation if the node is a discrete node. If states are not specified during creation, sensible defaults will be assigned based on the node type. With `set_states()` it is possible to update node states later on. If the number of new states given with this method is the same as the previous number of node states, state names will be updated. If `set_states()` changes the number of node states, node probability table size will be adjusted accordingly and probability values will reset to uniform.
+Input parameter `filename` must have a file extension of '.cmpx' or '.json'.
 
-### 4.1.2 `add_parent(new_parent)`
+### 4.1.17 `import_data(filename)`
 
-The method to add a new parent to a node. Equivalent of adding an arc between two nodes on agena.ai Modeller. The input parameter `new_parent` is another `Node` object. If `new_parent` is already a parent for the node, the function does not update the `parents` field of the node.
+A method to import dataset observations to the model using either a .csv or a .json input file. See examples below for the correct format of the input .csv and .json for data import.
 
-When a new parent is added to a node, its NPT values and expressions are reset/resized accordingly. 
+### 4.1.18 `export_data(filename, dataset_ids = optional, include_inputs = False, include_outputs = True)`
 
-### 4.1.3 `remove_parent(old_parent)` 
+A method to export dataset results or observations from the model to an either .csv or .json output file. See examples below for the format of the output .csv and .json files.
 
-The method to remove one of the existing parents of a node. Equivalent of removing the arc between two nodes on agena.ai Modeller. The input parameter `old_parent` is a `Node` object which has already been added to the `parents` field of the node.
+### 4.1.19 `from_cmpx(filepath = "/path/to/model/file.cmpx")`
 
-When an existing parent is removed from a node, its NPT values and expressions are reset/resized accordingly.
+This is the class method to create a `Model` object from a .cmpx file. The method parses the .cmpx file and creates the python objects based on the model in the file. To see its use, see examples below.
 
-### 4.1.4 `set_distr_type(new_distr_type)`
+### 4.1.20 `create_csv_template()`
 
-A method to set the table type (`distr_type`) of a node. If a `Node` is `simulated`, its table type can be "Expression" or "Partitioned" - the latter is only if the node has discrete parent nodes. If a `Node` is `not simulated`, its table type can be "Manual", "Expression", or "Partitioned (if the node has discrete parent nodes)".
+This method creates an empty CSV file for the model with the correct format so that it can be filled in and used for `import_data(filename)`. Note that this template includes every single node in the model, not all of which might be observable - you can delete the columns of the nodes which will not be observed. See examples below for its format and use.
 
-Changing the node's distribution type (table type) adjusts its `states`/`probabilities`/`expressions`` parameters accordingly.
+### 4.1.21 `create_sensitivity_config(...)`
 
-### 4.1.5 `set_probabilities(new_probs, by_rows = False)`
+A method to create a sensitivity configuration object if a sensitivity analysis request will be sent to agena.ai Cloud servers or the local API. Its parameters are:
 
-The method to set the probability values if the table type (`distr_type`) of a `Node` is "Manual". `new_probs` is a list of lists containing numerical values, and the length of the input list depends on the number of the states of the node and of its parents.
+* `targetNode` = target node ID for the analysis
+* `sensitivityNodes` = a list of sensitivity node IDs
+* (optional) `network` = ID of the network to perform analysis on. If missing, the first network in the model is used
+* (optional) `dataSet` = ID of the dataSet (scenario) to use for analysis
+* (optional) `report_settings` = a dictionary for settings for the sensitivity analysis report. The elements of the dictionary are:
+    * `"summaryStats"` (a list with some/all of the following fields)
+        * mean
+        * median
+        * variance
+        * standardDeviation
+        * upperPercentile
+        * lowerPercentile
+    * `"sumsLowerPercentileValue"` (set the reported lower percentile value.
+Default is 25)
+    * `"sumsUpperPercentileValue"` (set the reported upper percentile value.
+Default is 75)
+    * `"sensLowerPercentileValue"` (lower percentile value to limit sensitivity node data by. Default is 0)
+    * `"sensUpperPercentileValue"` (upper percentile value to limit sensitivity node data by. Default is 100)
 
-You can format the input list in two different orders. If the parameter `by_rows` is set to `True`, the method will read the input list to fill in the NPT row by row; if set to `False` (it is `False` by default), the method will read the input list to fill in the NPT column by columnn. This behaviour is illustrated with use case examples later in this document.
-
-### 4.1.6 `set_expressions(new_expr, partition_parents = optional)`
-The method to set the probability values if the table type (`distr_type`) of a `Node` is "Expression" or "Partitioned". If the table type is "Expression", `new_expr` is a list of size one and `partition_parents` is left untouched. If the table type is "Partitioned", `new_expr` is a list of expressions for each parent state, and `partition_parents` is a list of strings for each partitioned parent node's `id`. See the following sections for examples.
-
-### 4.1.7 `set_variable(variable_name, variable_value)`
-
-A method to set variables (constants) for a node. Takes the `variable_name` and `variable_value` inputs which define a new variable (constant) for the node.
-
-### 4.1.8 `remove_variable(variable_name)`
-
-A method to remove one of the existing variables (constants) from a node, using the `variable_name`.
+For the use of the function, see Sections [8](#8-agenaai-cloud-with-pyagena) and [9](#9-local-agenaai-api-with-pyagena).
 
 ## 4.2 `Network` methods
 
@@ -381,187 +478,90 @@ A method to modify `Node`s in a `Network`. On the defined `Node` with the `node_
 
 A method to plot the graphical structure of a BN network.
 
-## 4.3 `Model` methods
+## 4.3 `Node` methods
 
-A `Model` object consists of networks, network links, datasets, and settings. Once a new `Model` is created, it is possible to create `Network`s and `Dataset`s in it. By default, a new `Model` object comes with a single empty dataset (case) called "Case 1". Following methods can be used to modify `Model` objects: 
+`Node` objects are created in a `Network` object (see above). Once the nodes of a network are created, it is possible to modify them.
 
-### 4.3.1 `create_network(id, name=None, description=None)`
-
-A method to create a new `Network` object in a `Model` and add it to the `networks` field of the `Model` object. The input `id` is mandatory. The new `Network` object is added to the `Model` if the `Model` does not already have a `Network` with the given id.
-
-### 4.3.2 `remove_network(id)`
-
-A method to remove an existing `Network` object from the model using its `id`. Note that removing a `Network` from a `Model` doesn't automatically remove its possible network links to other `Network`s in the model. `network-links` field of a `Model` should be adjusted accordingly if needed.
-
-### 4.3.3 `get_network(network_id)`
-
-A method to access a `Network` object in a `Model`. The `Network` can be assigned to a variable and used.
-
-### 4.3.4 `add_network_link(source_network_id, source_node_id, target_network_id, target_node_id, link_type, pass_state = optional)`
-
-This is the method to add links to a model between its networks. These links start from a "source node" in a network and go to a "target node" in another network. To create the link, the source and target nodes in the networks need to be specified together with the network they belong to (by the `Node` and `Network` `id`s). The input parameters are as follows:
-
-* `source_network_id` = `Network.id` of the network the source node belongs to
-* `source_node_id` = `Node.id` of the source node
-* `target_network_id` = `Network.id` of the network the target node belongs to
-* `target_node_id` = `Node.id` of the target node
-* `link_type` = a string of the link type name. If not specified, it is `Marginals`. It can be one of the following:
-    * Marginals
-    * Mean
-    * Median
-    * Variance
-    * StandardDeviation
-    * LowerPercentile
-    * UpperPercentile
-    * State
-* `pass_state` = one of the `Node.states` of the source node. It has to be specified only if the `link_type` of the link is `"State"`, otherwise is left blank.
-
-Note that links between networks are allowed only when the source and target nodes fit certain criteria. Network links are allowed if:
-
-* Both nodes are the same type and either of them is simulated
-* Both nodes are the same type and neither is simulated and both have the same number of states
-* Source node is not numeric interval or discrete real and target node is simulated
-
-### 4.3.5 `remove_network_link(source_network_id, source_node_id,target_network_id, target_node_id)`
-
-A method to remove network links, given the `id`s of the source and target nodes (and the networks they belong to).
-
-### 4.3.6 `remove_all_network_links()`
-
-A method to remove all existing network links in a model.
-
-### 4.3.7 `create_dataset(dataset_id)`
-
-It is possible to add multiple cases to a model. These cases are new `Dataset` objects added to the `datasets` field of a model. Initially these cases have no observations and are only defined by their `id`s. The cases are populated with the `enter_observation()` function. The `create_dataset()` function takes the `id` of the new dataset to be added as input. 
-
-### 4.3.8 `remove_dataset(dataset_id)`
-
-A method to remove an existing scenario from the model. Input parameter `dataset_id` is the string which is the `id` of a dataset (case).
-
-### 4.3.9 `get_dataset(dataset_id)`
-
-A method to access a `Dataset` object in a `Model`. The `Dataset` can be assigned to a variable and used.
-
-### 4.3.10 `enter_observation(network_id, node_id, value, dataset_id = optional, variable_input = False)`
-
-A method to enter observation to a dataset in the model. Calls the dataset method `enter_observation` in the background.
-
-To enter the observation to a specific dataset (case), the dataset id must be given as the input parameter `dataset`. If `dataset` is left blank, the entered observation will by default go to the first dataset (case) of the model (called "Case 1" by default). This means that if there is no extra datasets created for a model (which by default comes with "Case 1"), any observation entered will be set for this dataset (mimicking the behaviour of entering observation to agena.ai Modeller).
-
-The observation is defined with the mandatory input parameters:
-* `network_id` = `Network.id` of the network the observed node belongs to
-* `node_id` = `Node.id` of the observed node
-* `value` = this parameter can be:
-    * the value or state of the observation for the observed node (if it is hard evidence)
-    * the array of multiple values and their weights (if it is soft evidence)
-    * the value of the observation for a variable of the observed node
-* `dataset_id` = optional, `Dataset.id` of the dataset which will have the observation
-* `variable_input` = a boolean parameter, set to `True` if the entered observation is a variable (constant) id for the node instead of an observed value.
-
-A node can have only one observation. This observation can be hard evidence (single state or a single value) or soft evidence (multiple states or multiple values with their weights). If the node has variable(s), the variable value(s) can also be observed. Each variable of the node can have an observation. If the node with variables has observations for its variables and an observation for itself, the variable observations will be ignored and only the node observation will be used in calculations.
-
-### 4.3.11 `remove_observation(network_id, node_id, dataset_id = optional)`
-
-A method to remove a specific observation from the model. Calls the dataset method `remove_observation` in the background. It requires the id of the node which has the observation to be removed and the id of the network the node belongs to.
-
-### 4.3.12 `clear_dataset_observations(dataset_id)`
-
-A method to clear all observations in a specific dataset (case) in the model. Calls the dataset method `clear_all_observations()` in the background.
-
-### 4.3.13 `clear_all_observations()`
-
-A method to clear all observations defined in a model. This function removes all observations from all datasets (cases).
-
-### 4.3.14 `change_settings(setting arguments)`
-
-A method to change model settings. The input parameters can be some or all of the `settings` fields. For example:
+Some `Node` fields can be modified with a direct access to the field. For example, to update the name or a description information of a `Node`, simply use:
 
 ```python
-example_model.change_settings(convergence=0.001, iterations=75)
+example_node.name = "new node name"
 ```
 
-### 4.3.15 `default_settings()`
+or
 
-A method to reset model settings back to default values. The default values for model settings are:
+```python
+example_node.description = "new node description"
+```
 
-* discreteTails = False
-* sampleSizeRanked = 5
-* convergence = 0.01
-* iterations = 50
-* tolerance = 1
+Because changing the name or description of a `Node` does not cause any compatibility issues. However, some fields such as table type or parents will have implications for other fields. Changing the node parents will change the size of its NPT, changing the node's table type from "Manual" to "Expression" will mean the state probabilities are now defined in a different way. Therefore, to modify such fields of a `Node`, use the corresponding method described below. These methods will ensure all the sensible adjustments are made when a field of a `Node` has been changed. To modify the nodes, you can either use the node methods described in this section, or the network methods described in the next section which allow you to modify nodes in the network. Once a network and its nodes are created, it is recommended to use the network methods to modify its nodes.
 
-### 4.3.16 `save_to_file(filename)`
+If you are directly working with `Node` objects, these are the methods `Node` objects can call for various purposes with their input parameters shown in parantheses:
 
-A method to export the `Model` to a .cmpx or a .json file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a file in the correct format readable by agena.ai.
+### 4.3.1 `set_states(states)`
 
-Input parameter `filename` must have a file extension of '.cmpx' or '.json'.
+The method to update the states of the `Node` object. The node states can be defined upon creation if the node is a discrete node. If states are not specified during creation, sensible defaults will be assigned based on the node type. With `set_states()` it is possible to update node states later on. If the number of new states given with this method is the same as the previous number of node states, state names will be updated. If `set_states()` changes the number of node states, node probability table size will be adjusted accordingly and probability values will reset to uniform.
 
-### 4.3.17 `import_data(filename)`
+### 4.3.2 `add_parent(new_parent)`
 
-A method to import dataset observations to the model using either a .csv or a .json input file. See examples below for the correct format of the input .csv and .json for data import.
+The method to add a new parent to a node. Equivalent of adding an arc between two nodes on agena.ai Modeller. The input parameter `new_parent` is another `Node` object. If `new_parent` is already a parent for the node, the function does not update the `parents` field of the node.
 
-### 4.3.18 `export_data(filename, dataset_ids = optional, include_inputs = True, include_outputs = True)`
+When a new parent is added to a node, its NPT values and expressions are reset/resized accordingly. 
 
-A method to export dataset results or observations from the model to an either .csv or .json output file. See examples below for the format of the output .csv and .json files.
+### 4.3.3 `remove_parent(old_parent)` 
 
-### 4.3.19 `from_cmpx(filepath = "/path/to/model/file.cmpx")`
+The method to remove one of the existing parents of a node. Equivalent of removing the arc between two nodes on agena.ai Modeller. The input parameter `old_parent` is a `Node` object which has already been added to the `parents` field of the node.
 
-This is the class method to create a `Model` object from a .cmpx file. The method parses the .cmpx file and creates the python objects based on the model in the file. To see its use, see examples below.
+When an existing parent is removed from a node, its NPT values and expressions are reset/resized accordingly.
 
-### 4.3.20 `create_csv_template()`
+### 4.3.4 `set_distr_type(new_distr_type)`
 
-This method creates an empty CSV file for the model with the correct format so that it can be filled in and used for `import_data(filename)`. Note that this template includes every single node in the model, not all of which might be observable - you can delete the columns of the nodes which will not be observed. See examples below for its format and use.
+A method to set the table type (`distr_type`) of a node. If a `Node` is `simulated`, its table type can be "Expression" or "Partitioned" - the latter is only if the node has discrete parent nodes. If a `Node` is `not simulated`, its table type can be "Manual", "Expression", or "Partitioned (if the node has discrete parent nodes)".
 
-### 4.3.21 `create_sensitivity_config(...)`
+Changing the node's distribution type (table type) adjusts its `states`/`probabilities`/`expressions`` parameters accordingly.
 
-A method to create a sensitivity configuration object if a sensitivity analysis request will be sent to agena.ai Cloud servers or the local API. Its parameters are:
+### 4.3.5 `set_probabilities(new_probs, by_rows = False)`
 
-* `targetNode` = target node ID for the analysis
-* `sensitivityNodes` = a list of sensitivity node IDs
-* (optional) `network` = ID of the network to perform analysis on. If missing, the first network in the model is used
-* (optional) `dataSet` = ID of the dataSet (scenario) to use for analysis
-* (optional) `report_settings` = a dictionary for settings for the sensitivity analysis report. The elements of the dictionary are:
-    * `"summaryStats"` (a list with some/all of the following fields)
-        * mean
-        * median
-        * variance
-        * standardDeviation
-        * upperPercentile
-        * lowerPercentile
-    * `"sumsLowerPercentileValue"` (set the reported lower percentile value.
-Default is 25)
-    * `"sumsUpperPercentileValue"` (set the reported upper percentile value.
-Default is 75)
-    * `"sensLowerPercentileValue"` (lower percentile value to limit sensitivity node data by. Default is 0)
-    * `"sensUpperPercentileValue"` (upper percentile value to limit sensitivity node data by. Default is 100)
+The method to set the probability values if the table type (`distr_type`) of a `Node` is "Manual". `new_probs` is a list of lists containing numerical values, and the length of the input list depends on the number of the states of the node and of its parents.
 
-For the use of the function, see Sections [8](#8-agenaai-cloud-with-pyagena) and [9](#9-local-agenaai-api-with-pyagena).
+You can format the input list in two different orders. If the parameter `by_rows` is set to `True`, the method will read the input list to fill in the NPT row by row; if set to `False` (it is `False` by default), the method will read the input list to fill in the NPT column by columnn. This behaviour is illustrated with use case examples later in this document.
 
-## 4.5 `Dataset` Methods
+### 4.3.6 `set_expressions(new_expr, partition_parents = optional)`
+The method to set the probability values if the table type (`distr_type`) of a `Node` is "Expression" or "Partitioned". If the table type is "Expression", `new_expr` is a list of size one and `partition_parents` is left untouched. If the table type is "Partitioned", `new_expr` is a list of expressions for each parent state, and `partition_parents` is a list of strings for each partitioned parent node's `id`. See the following sections for examples.
+
+### 4.3.7 `set_variable(variable_name, variable_value)`
+
+A method to set variables (constants) for a node. Takes the `variable_name` and `variable_value` inputs which define a new variable (constant) for the node.
+
+### 4.3.8 `remove_variable(variable_name)`
+
+A method to remove one of the existing variables (constants) from a node, using the `variable_name`.
+
+## 4.4 `Dataset` Methods
 
 The `Dataset` objects in the models hold the observations and calculation results. The datasets have the following methods.
 
-### 4.5.1 `enter_observation(network_id, node_id, value, variable_name=optional)`
+### 4.4.1 `enter_observation(network_id, node_id, value, variable_name=optional)`
 
-A method to enter an observation to a dataset. See Section [4.3.10](#4310-enter_observationnetwork_id-node_id-value-dataset_id--optional-variable_input--false) for details. Section 4.3.10 is the model method which calls this dataset method after using its parameter `dataset_id` to determine to which dataset the observation is entered.
+A method to enter an observation to a dataset. See Section [4.1.10](#4110-enter_observationnetwork_id-node_id-value-dataset_id--optional-variable_input--false) for details. Section 4.1.10 is the model method which calls this dataset method after using its parameter `dataset_id` to determine to which dataset the observation is entered. It is possible to use the dataset method directly to enter observations to the corresponding dataset.
 
-### 4.5.2 `remove_observation(network_id, node_id)`
+### 4.4.2 `remove_observation(network_id, node_id)`
 
-A method to remove an observation from a dataset. See Section [4.3.11](#4311-remove_observationnetwork_id-node_id-dataset_id--optional) for details. Section 4.3.11 is the model method which calls this dataset method after using its parameter `dataset_id` to determine from which dataset is the observation is removed.
+A method to remove an observation from a dataset. See Section [4.1.11](#4111-remove_observationnetwork_id-node_id-dataset_id--optional) for details. Section 4.1.11 is the model method which calls this dataset method after using its parameter `dataset_id` to determine from which dataset is the observation is removed.
 
-### 4.5.3 `clear_all_observations()`
+### 4.4.3 `clear_all_observations()`
 
 A method to remove all observations from a dataset. If the model method `clear_dataset_observations(dataset_id)` is used, it calls this dataset method. Not to be confused with the model method `clear_all_observations()` which removes all observations from all datasets in the model.
 
-### 4.5.4 `get_result(network_id, node_id)`
+### 4.4.4 `get_result(network_id, node_id)`
 
 If the dataset contains calculation results, you can access the results of a specific node in the model with this method.
 
-## 4.6 agena.ai Cloud Related Functions
+## 4.5 agena.ai Cloud Related Functions
 
 pyagena allows users to send their models to agena.ai Cloud servers for calculation. The functions around the server capabilities (including authentication) are described in [Section 8](#8-agenaai-cloud-with-pyagena).
 
-## 4.7 agena.ai Local API Related Functions
+## 4.6 agena.ai Local API Related Functions
 
 pyagena allows users to connect to the local agena.ai developer API for calculation. The functions about the local developer API communication are descibed in [Section 9](#9-local-agenaai-api-with-pyagena).
 
@@ -634,24 +634,28 @@ which will initiate a new model object with no networks and one default empty da
 You can create network(s) in the model with the `create_network()` method of a model. For example:
 
 ```python
-example_model.create_network(id="example_net")
+example_net = example_model.create_network(id="example_net")
 ```
 
-which will create a new network in the model with no nodes.
+which will create a new network in the model with no nodes. Note that if you assign the creation method to a variable, the network variable is usable directly in addition to the model now including the new network.
 
 ## 6.3 Creating Nodes
 
-You can create nodes in a network with the `create_node()` method of a network. It is recommended to assign the network in a model to a new variable (with `get_network()`) for the ease of future operations. For example:
+You can create nodes in a network with the `create_node()` method of a network. 
+
+It is recommended to assign the network in a model to a new variable for the ease of future operations. If not assigned upon creation, you can use `get_network()`, for example:
 
 ```python
-net = example_model.get_network("example_net")
+example_net = example_model.get_network("example_net")
 ```
 
 Now we can use the variable `net` to create and modify nodes in it:
 
 ```python
-net.create_node(id="node_one")
+node_one = net.create_node(id="node_one")
 ```
+
+Similar no network creation, you can assign the newly created node to its own variable at the time of creation.
 
 If the optional fields are not specified, the nodes will be created with the defaults. The default values for the fields, if they are not specified, are:
 
@@ -996,7 +1000,7 @@ Note that this function did not specify any dataset (case). If this is the case,
 You may choose to add more datasets (cases) to the model with the `create_dataset()` function:
 
 ```python
-example_model.create_dataset("Case 2")
+case_two = example_model.create_dataset("Case 2")
 ```
 
 Once added, you can enter observation to the new dataset (case) if you specify the `dataset_id` parameter in the `enter_observation()` function:
@@ -1138,6 +1142,8 @@ The sensitivity analysis computation supports asynchronous request (polling) if 
 
 Agena.ai has a [Java based API](https://github.com/AgenaRisk/api) to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller or cloud. The local API has Java and maven dependencies, which you can see on its github page in full detail. pyagena allows communications with the local agena developer API.
 
+Local API functions, except for `local_api_clone`, come with the optional parameter `verbose`, which is by default set to False. If you choose to display full maven output as a result of the functions, you can set `verbose = True` in the function calls.
+
 ## 8.1 Setting up the local API directory
 
 To manually set up the local agena developer API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api.
@@ -1166,7 +1172,19 @@ local_api_activate_license("1234-ABCD-5678-EFGH")
 
 passing on your developer license key as the input parameter.
 
-**!! Note that when there is a new version of the agena developer API, you need to re-run `local_api_compile()` function to update the local repository.**
+If you need to deactivate your license,
+
+```python
+local_api_deactivate_license()
+```
+
+And if you would like to see the license information:
+
+```python
+local_api_show_license()
+```
+
+**!! Note that when there is a new version of the agena developer API, you need to re-run `local_api_compile()` function to update the local repository. Remember that this is done in the working directory which contains the /api/ folder, not in the /api/ folder !!**
 
 ## 8.2 Model calculation with the local API
 
@@ -1342,7 +1360,7 @@ The input file can be used with the import method:
 example_model.import_data(filename="./example_data.json")
 ```
 
-This will look up the ids of all the datasets in the .json input, create new datasets in the model for those whose id does not already exist in the model. If the id of any dataset in the input file already exists in the model, that dataset will be updated with the information from the input file. The observations for all the datasets will be imported to the model.
+This will look up the ids of all the datasets in the .json input, create new datasets in the model for those whose id does not already exist in the model. If the id of any dataset in the input file already exists in the model, that dataset will be updated with the information from the input file. The observations for all the datasets will be imported to the model. If the .json file contains results for any dataset, the results are imported too.
 
 ## 9.2 Exporting Data to a .csv File
 
@@ -1494,12 +1512,12 @@ The export method will generate a .csv with the following format:
 
 ### 9.2.2 To a .json File
 
-If the export output is a .json file, then it will contain a list of datasets with all their fields (id, observations, results). The `include_inputs` and `include_outputs` boolean parameters do not affect the .json output.
+If the export output is a .json file, then it will contain a list of datasets with all their fields (id, observations, results). .json output can have either inputs, outputs, or both at the same time.
 
 For example,
 
 ```python
-example_model.export_data(filename="./example_output.json")
+example_model.export_data(filename="./example_output.json", include_inputs=True, include_outputs=True)
 ```
 
 will list all the datasets in the model in the exported .json file such as:
@@ -1548,6 +1566,8 @@ will list all the datasets in the model in the exported .json file such as:
         }
       }]}]
 ```
+
+If inputs are not included, `observations` field is blank. If outputs are not included, `results` field is blank.
 
 # 10. pyagena Use Case Examples
 

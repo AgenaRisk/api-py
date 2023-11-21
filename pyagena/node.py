@@ -3,7 +3,7 @@ class Node():
     def __init__(self, id, name=None, description=None, type=None, simulated=None, states=None):
         
         # initiating a new object with the id
-        self.id = id
+        self.id = str(id)
         self.parents = [] #all nodes are created with an empty list of parents
         self.variables = []
 
@@ -11,12 +11,12 @@ class Node():
         if name is None:
              self.name = id
         else:
-             self.name = name
+             self.name = str(name)
 
         if description is None:
              self.description = "New Node"
         else:
-             self.description = description
+             self.description = str(description)
         
         # first check if the node is simulated or not, then get type and states information, use sensible defaults when not given
         if simulated is None or simulated==False:

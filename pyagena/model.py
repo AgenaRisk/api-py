@@ -50,6 +50,7 @@ class Model():
      def create_network(self, id, name=None, description=None):
           this_net = Network(id=id, name=name, description=description)
           self.add_network(this_net)
+          return this_net
 
      def add_network(self, network:Network):
           if network.id in self._get_networks():
@@ -184,6 +185,7 @@ class Model():
           self.datasets.append(new_ds)
           if not from_cmpx:
                print(f"The dataset {dataset_id} is successfully created")
+          return new_ds
 
      def remove_dataset(self, dataset_id, from_cmpx=False):
           if dataset_id not in self._get_datasets():
@@ -249,24 +251,26 @@ class Model():
           self.settings = {"parameterLearningLogging":False, "discreteTails":False, "sampleSizeRanked":5, "convergence":0.01, "simulationLogging":False, "iterations":50, "tolerance":1}
           print("Model settings are successfully reset to default")
 
-     def save_to_file(self, filename):
+     def save_to_file(self, filename, strip_data = False):
           if os.path.splitext(filename)[1] == ".cmpx" or os.path.splitext(filename)[1] == ".json":
-               exported = self._generate_cmpx()
-
+               exported = self._generate_cmpx(strip_data=strip_data)
+               
                with open(filename, "w") as outfile:
                     json.dump(exported, outfile)
           else:
                raise ValueError("The input filename must have a .cmpx or .json file extension")
 
-     def _generate_cmpx(self):
+     def _generate_cmpx(self, strip_data = False):
           json_settings = self.settings
           json_datasets = []
-          for ds in self.datasets:
-               this_ds = {}
-               this_ds["id"] = ds.id
-               this_ds["observations"] = ds.observations
-               this_ds["results"] = ds.results
-               json_datasets.append(this_ds)
+
+          if not strip_data:
+               for ds in self.datasets:
+                    this_ds = {}
+                    this_ds["id"] = ds.id
+                    this_ds["observations"] = ds.observations
+                    this_ds["results"] = ds.results
+                    json_datasets.append(this_ds)
 
           json_network_links = self.network_links
 
@@ -322,11 +326,12 @@ class Model():
                     if ds_id in self._get_datasets():
                          self.remove_dataset(ds_id, from_cmpx=True)
                     self.create_dataset(ix, from_cmpx=True)
+                    print(f"The dataset {ds_id} is created or updated in the model")
                     for idx, cl in enumerate(data.columns):
                          this_net = cl.split(".")[0]
                          this_node = cl.split(".")[1]
                          if not pd.isna(row[idx]):     self.enter_observation(network_id=this_net, node_id=this_node, dataset_id=ds_id, value=row[idx])
-                    print(f"The dataset {ds_id} is created or updated in the model")
+                    
     
           elif os.path.splitext(filename)[1] == ".json":
                with open(filename, "r") as file:
@@ -337,7 +342,12 @@ class Model():
                     ds_id = ds["id"]
                     if ds_id in self._get_datasets():
                          self.remove_dataset(ds_id, from_cmpx=True)
-                    self.create_dataset(dataset_id = ds_id, observations=ds["observations"], from_cmpx=True)                   
+                    self.create_dataset(dataset_id = ds_id, observations=ds["observations"], from_cmpx=True)
+                    
+                    if "results" in ds.keys():
+                         this_ds = self.get_dataset(ds_id)
+                         this_ds.results = ds["results"]                   
+          
                     print(f"The dataset {ds_id} is created or updated in the model")
                                    
           else:
@@ -364,7 +374,7 @@ class Model():
                dataset._convert_to_dotdict()
                print(f"Results are successfully imported to case {dataset.id}")
 
-     def export_data(self, filename, dataset_ids=None, include_inputs = True, include_outputs = True):
+     def export_data(self, filename, dataset_ids=None, include_inputs = False, include_outputs = True):
 
           if dataset_ids is None:
                ds_to_export = self.datasets
@@ -382,7 +392,7 @@ class Model():
                     for ds in ds_to_export:
                          for rs in ds.results:
                               for rv in rs.resultValues:
-                                   df.loc[len(df)] = [ds.id, rs["network"], rs["node"], rv["label"], rv["value"]]
+                                   df.loc[len(df)] = [ds.id, rs["network"], rs["node"], '"'+rv["label"]+'"', rv["value"]]
 
                     df.to_csv(filename)
 
@@ -403,6 +413,14 @@ class Model():
                else:
                     data_json = self._ds_to_json()
                
+               if not include_inputs:
+                    for ds in data_json:
+                         ds["observations"] = []
+               
+               if not include_outputs:
+                    for ds in data_json:
+                         ds["results"] = []
+
                with open(filename, "w") as outfile:
                     json.dump(data_json, outfile)
 
