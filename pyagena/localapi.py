@@ -62,17 +62,23 @@ def local_api_activate_license(key, verbose = False):
         send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
 
-    if len(send_command.stderr)>0:
+    trial = "Trial already expired"
+    if (len(send_command.stderr)>0) & (trial not in send_command.stderr):
         if verbose:
             print(send_command.stdout)
             print(send_command.stderr)
         raise ValueError("License key activation failed")
     else:
         already = "Product already activated"
+        invalid = "Invalid license key"
         if already in send_command.stdout:
             if verbose:
                 print(send_command.stdout)
             raise ValueError(already)
+        elif invalid in send_command.stdout:
+            if verbose:
+                print(send_command.stdout)
+            raise ValueError(invalid)
         else:
             if verbose:
                 print(send_command.stdout)
@@ -125,7 +131,11 @@ def local_api_show_license(verbose = False):
         if verbose:
             print(send_command.stdout)
             print(send_command.stderr)
-        raise ValueError("Error when attempting to show license")
+        expired = "Trial already expired"
+        if expired in send_command.stderr:
+            raise ValueError(expired)
+        else:
+            raise ValueError("Error when attempting to show license")
     else:
         summary = send_command.stdout.split("{")[1].split("}")[0].strip()
         statements = []
