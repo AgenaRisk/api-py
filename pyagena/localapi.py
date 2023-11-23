@@ -46,6 +46,17 @@ def local_api_compile(verbose = False):
     else:
         raise ValueError("maven compile has failed")
 
+def _get_license_info(mvnout):
+    summary = mvnout.stdout.split("{")[1].split("}")[0].strip()
+    statements = {}
+
+    sum_list = summary.replace("'","").replace('"','').split("\n")
+    for st in sum_list:
+        st = st.strip()
+        statements[st.split(": ")[0]] = st.split(": ")[1].replace(",","")
+    
+    return statements
+
 def local_api_activate_license(key, verbose = False):
     cur_wd = os.getcwd()
     os.chdir("./api/")
@@ -62,12 +73,12 @@ def local_api_activate_license(key, verbose = False):
         send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
 
-    trial = "Trial already expired"
-    if (len(send_command.stderr)>0) & (trial not in send_command.stderr):
+    license_info = _get_license_info(send_command)
+    if license_info["Mode"] == "FreeTrial":
         if verbose:
             print(send_command.stdout)
             print(send_command.stderr)
-        raise ValueError("License key activation failed")
+        raise ValueError("Licence key activation failed")        
     else:
         already = "Product already activated"
         invalid = "Invalid license key"
@@ -137,18 +148,13 @@ def local_api_show_license(verbose = False):
         else:
             raise ValueError("Error when attempting to show license")
     else:
-        summary = send_command.stdout.split("{")[1].split("}")[0].strip()
-        statements = []
-
-        sum_list = summary.replace("'","").replace('"','').split("\n          ")
-        for st in sum_list:
-            statements.append(st.split(": ")[0] + ": " + st.split(": ")[1].replace(",",""))
+        license_info = _get_license_info(send_command)
 
         if verbose:
             print(send_command.stdout)
 
-        for st in statements:
-            print(st)
+        for ix, st in license_info.items():
+            print(f"{ix}: {st}")
         
 def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verbose = False):
     cur_wd = os.getcwd()
