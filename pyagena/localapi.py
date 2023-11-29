@@ -47,18 +47,8 @@ def local_api_compile(verbose = False):
         raise ValueError("maven compile has failed")
 
 def _get_license_info(mvnout):
-    # summary = "{" + mvnout.stdout.split("{")[1].split("}")[0].strip() + "}"
-    # return json.loads(summary)
-    
-    summary = mvnout.stdout.split("{")[1].split("}")[0].strip()
-    statements = {}
-
-    sum_list = summary.replace("'","").replace('"','').split("\n")
-    for st in sum_list:
-        st = st.strip()
-        statements[st.split(": ")[0]] = st.split(": ")[1].replace(",","")
-    
-    return statements
+    summary = "{" + mvnout.stdout.split("{")[1].split("}")[0].strip() + "}"
+    return json.loads(summary)
 
 def local_api_activate_license(key, verbose = False):
     cur_wd = os.getcwd()
@@ -66,16 +56,14 @@ def local_api_activate_license(key, verbose = False):
 
     if platform == "win32":
 
-        #command = ['powershell', '-command', '"mvn', 'exec:java@activate', '\\"-Dexec.args=`\\"--keyActivate', '--key', key, '`\\"\\""']
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyActivate --key ' + key + '`\\"\\""'
         send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
 
-        command = ['mvn', 'exec:java@activate', '-Dexec.args="--keyActivate', '--key', key, '"']
-        #command = 'mvn exec:java@activate -Dexec.args="--keyActivate --key ' + key + '"'
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        command = 'mvn exec:java@activate -Dexec.args="--keyActivate --key ' + key + '"'
+        send_command = subprocess.run(command, shell=True, capture_output=True, text=True)
         os.chdir(cur_wd)
 
     license_info = _get_license_info(send_command)
@@ -110,9 +98,8 @@ def local_api_deactivate_license(verbose = False):
         os.chdir(cur_wd)
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
-        #command = 'mvn exec:java@activate -Dexec.args="--keyDeactivate"'
-        command = ['mvn', ' exec:java@activate', '-Dexec.args="--keyDeactivate"']
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        command = 'mvn exec:java@activate -Dexec.args="--keyDeactivate"'
+        send_command = subprocess.run(command, shell=True, capture_output=True, text=True)
         os.chdir(cur_wd)
 
     if len(send_command.stderr) > 0:
@@ -135,15 +122,13 @@ def local_api_show_license(verbose = False):
     os.chdir("./api/")
 
     if platform == "win32":
-        #command = ['powershell', '-command', '"mvn', 'exec:java@activate', '\\"-Dexec.args=`\\"--licenseSummary`\\"\\""']
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--licenseSummary`\\"\\""'
         send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
     
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
-        command = ['mvn', 'exec:java@activate', '-Dexec.args="--licenseSummary"']
-        #command = 'mvn exec:java@activate -Dexec.args="--licenseSummary"'
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        command = 'mvn exec:java@activate -Dexec.args="--licenseSummary"'
+        send_command = subprocess.run(command, shell=True, capture_output=True, text=True)
         os.chdir(cur_wd)
 
     if len(send_command.stderr) > 0:
@@ -204,14 +189,12 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
 
         if cache_path is None:
             out_path = tempdir.name + "/" + data_json[0]["id"] + "_output.json"
-            command = ['mvn', 'exec:java@calculate', '-Dexec.args="--model', '\''+model_path+'\'', '--out', '\''+out_path+'\'', '--data', '\''+data_path+'\'"']
-            #command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\'"'
+            command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\'"'
         else:
             out_path = cache_path
-            command = ['mvn', 'exec:java@calculate', '-Dexec.args="--model', '\''+model_path+'\'', '--out', '\''+out_path+'\'', '--data', '\''+data_path+'\'', '--use-cache"']
-            #command = 'mvn exec:java@calculate -Dexec.args="--directoryWorking \'' + cur_wd + '\' --model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache"'
+            command = 'mvn exec:java@calculate -Dexec.args="--directoryWorking \'' + cur_wd + '\' --model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache"'
 
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = subprocess.run(command, shell=True, capture_output=True, text=True)
         os.chdir(cur_wd)
 
     if len(send_command.stderr) > 0:
@@ -261,9 +244,8 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
         
-        command = ['mvn', 'exec:java@sensitivity', '-Dexec.args="--model', '\''+model_path+'\'', '--out', '\''+out_path+'\'', '--config', '\''+config_path+'\'"']
-        #command = 'mvn exec:java@sensitivity -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --config \'' + config_path + '\'"'
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        command = 'mvn exec:java@sensitivity -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --config \'' + config_path + '\'"'
+        send_command = subprocess.run(command, shell=True, capture_output=True, text=True)
         os.chdir(cur_wd)
 
     if len(send_command.stderr) > 0:
