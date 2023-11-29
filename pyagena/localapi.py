@@ -10,7 +10,7 @@ import json
 import subprocess
 
 def local_api_clone():
-    send_command = subprocess.run("git clone https://github.com/AgenaRisk/api.git", capture_output=True, text=True)
+    send_command = subprocess.run(["git", "clone", "https://github.com/AgenaRisk/api.git"], capture_output=True, text=True)
 
     already = "already exists and is not an empty directory"
     if already in send_command.stderr:
@@ -24,15 +24,15 @@ def local_api_compile(verbose = False):
     cur_wd = os.getcwd()
     os.chdir("./api/")
 
-    checkout = subprocess.run("git checkout master", capture_output=True, text=True)
+    checkout = subprocess.run(["git", "checkout", "master"], capture_output=True, text=True)
     if verbose:
         print(checkout.stdout)    
-    pull = subprocess.run("git pull", capture_output=True, text=True)
+    pull = subprocess.run(["git", "pull"], capture_output=True, text=True)
     if verbose:
         print(pull.stdout)
-    get_tag = subprocess.run("git describe --tags --abbrev=0", capture_output=True, text=True)
+    get_tag = subprocess.run(["git", "describe", "--tags", "--abbrev=0"], capture_output=True, text=True)
     tag = get_tag.stdout.strip()
-    tag_comm = "git checkout " + tag
+    tag_comm = ['git', 'checkout', tag]
 
     updated = subprocess.run(tag_comm, capture_output=True, text=True)
     if verbose:
@@ -47,6 +47,9 @@ def local_api_compile(verbose = False):
         raise ValueError("maven compile has failed")
 
 def _get_license_info(mvnout):
+    # summary = "{" + mvnout.stdout.split("{")[1].split("}")[0].strip() + "}"
+    # return json.loads(summary)
+    
     summary = mvnout.stdout.split("{")[1].split("}")[0].strip()
     statements = {}
 
@@ -63,13 +66,15 @@ def local_api_activate_license(key, verbose = False):
 
     if platform == "win32":
 
+        #command = ['powershell', '-command', '"mvn', 'exec:java@activate', '\\"-Dexec.args=`\\"--keyActivate', '--key', key, '`\\"\\""']
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyActivate --key ' + key + '`\\"\\""'
         send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
 
-        command = 'mvn exec:java@activate -Dexec.args="--keyActivate --key ' + key + '"'
+        command = ['mvn', 'exec:java@activate', '-Dexec.args="--keyActivate', '--key', key, '"']
+        #command = 'mvn exec:java@activate -Dexec.args="--keyActivate --key ' + key + '"'
         send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
 
@@ -105,7 +110,8 @@ def local_api_deactivate_license(verbose = False):
         os.chdir(cur_wd)
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
-        command = 'mvn exec:java@activate -Dexec.args="--keyDeactivate"'
+        #command = 'mvn exec:java@activate -Dexec.args="--keyDeactivate"'
+        command = ['mvn', ' exec:java@activate', '-Dexec.args="--keyDeactivate"']
         send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
 
@@ -129,12 +135,14 @@ def local_api_show_license(verbose = False):
     os.chdir("./api/")
 
     if platform == "win32":
+        #command = ['powershell', '-command', '"mvn', 'exec:java@activate', '\\"-Dexec.args=`\\"--licenseSummary`\\"\\""']
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--licenseSummary`\\"\\""'
         send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
     
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
-        command = 'mvn exec:java@activate -Dexec.args="--licenseSummary"'
+        command = ['mvn', 'exec:java@activate', '-Dexec.args="--licenseSummary"']
+        #command = 'mvn exec:java@activate -Dexec.args="--licenseSummary"'
         send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
 
@@ -196,13 +204,14 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
 
         if cache_path is None:
             out_path = tempdir.name + "/" + data_json[0]["id"] + "_output.json"
-            command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\'"'
+            command = ['mvn', 'exec:java@calculate', '-Dexec.args="--model', '\''+model_path+'\'', '--out', '\''+out_path+'\'', '--data', '\''+data_path+'\'"']
+            #command = 'mvn exec:java@calculate -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\'"'
         else:
             out_path = cache_path
-            command = 'mvn exec:java@calculate -Dexec.args="--directoryWorking \'' + cur_wd + '\' --model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache"'
+            command = ['mvn', 'exec:java@calculate', '-Dexec.args="--model', '\''+model_path+'\'', '--out', '\''+out_path+'\'', '--data', '\''+data_path+'\'', '--use-cache"']
+            #command = 'mvn exec:java@calculate -Dexec.args="--directoryWorking \'' + cur_wd + '\' --model \'' + model_path + '\'  --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache"'
 
         send_command = subprocess.run(command, capture_output=True, text=True)
-
         os.chdir(cur_wd)
 
     if len(send_command.stderr) > 0:
@@ -252,7 +261,8 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
     elif platform == "darwin" or platform == "linux" or platform == "linux2":
         
-        command = 'mvn exec:java@sensitivity -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --config \'' + config_path + '\'"'
+        command = ['mvn', 'exec:java@sensitivity', '-Dexec.args="--model', '\''+model_path+'\'', '--out', '\''+out_path+'\'', '--config', '\''+config_path+'\'"']
+        #command = 'mvn exec:java@sensitivity -Dexec.args="--model \'' + model_path + '\'  --out \'' + out_path + '\' --config \'' + config_path + '\'"'
         send_command = subprocess.run(command, capture_output=True, text=True)
         os.chdir(cur_wd)
 
