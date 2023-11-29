@@ -41,10 +41,12 @@ def local_api_compile(verbose = False):
     if verbose:
         print(updated.stdout)
         print(updated.stderr)
-    send_command = os.system("mvn clean compile")
+    send_command = subprocess.run(['mvn', 'clean', 'compile', '-DskipTests', '-Dmaven.javadoc.skip=true'], capture_output=True, text=True)
     os.chdir(cur_wd)
-
-    if send_command == 0:
+    if verbose:
+        print(send_command.stdout)
+        print(send_command.stderr)
+    if send_command.returncode == 0:
         print("The local api environment is compiled with maven successfully")
     else:
         raise ValueError("maven compile has failed")
