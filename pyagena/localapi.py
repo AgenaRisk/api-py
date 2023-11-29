@@ -26,18 +26,21 @@ def local_api_compile(verbose = False):
 
     checkout = subprocess.run(["git", "checkout", "master"], capture_output=True, text=True)
     if verbose:
-        print(checkout.stdout)    
+        print(checkout.stdout)
+        print(checkout.stderr)
+    
     pull = subprocess.run(["git", "pull"], capture_output=True, text=True)
     if verbose:
         print(pull.stdout)
+        print(pull.stderr)
     get_tag = subprocess.run(["git", "describe", "--tags", "--abbrev=0"], capture_output=True, text=True)
     tag = get_tag.stdout.strip()
     tag_comm = ['git', 'checkout', tag]
 
     updated = subprocess.run(tag_comm, capture_output=True, text=True)
     if verbose:
+        print(updated.stdout)
         print(updated.stderr)
-
     send_command = os.system("mvn clean compile")
     os.chdir(cur_wd)
 
@@ -63,27 +66,22 @@ def local_api_activate_license(key, verbose = False):
         send_command = subprocess.run(command, capture_output=True, text=True)
 
     os.chdir(cur_wd)
-    
+
+    if verbose:
+        print(send_command.stdout)
+        print(send_command.stderr)
+
     license_info = _get_license_info(send_command)
     if license_info["Mode"] == "FreeTrial":
-        if verbose:
-            print(send_command.stdout)
-            print(send_command.stderr)
         raise ValueError("Licence key activation failed")        
     else:
         already = "Product already activated"
         invalid = "Invalid license key"
         if already in send_command.stdout:
-            if verbose:
-                print(send_command.stdout)
             raise ValueError(already)
         elif invalid in send_command.stdout:
-            if verbose:
-                print(send_command.stdout)
             raise ValueError(invalid)
         else:
-            if verbose:
-                print(send_command.stdout)
             print("License key activated successfully")
 
 def local_api_deactivate_license(verbose = False):
@@ -100,10 +98,11 @@ def local_api_deactivate_license(verbose = False):
 
     os.chdir(cur_wd)
 
+    if verbose:
+        print(send_command.stdout)
+        print(send_command.stderr)
+
     if len(send_command.stderr) > 0:
-        if verbose:
-            print(send_command.stdout)
-            print(send_command.stderr)
         limit_reach = "The license has reached it's allowed deactivations limit"
         if limit_reach in send_command.stderr:
             raise ValueError(limit_reach)
@@ -111,8 +110,6 @@ def local_api_deactivate_license(verbose = False):
             raise ValueError("Deactivation failed")
     else:
         old_key = send_command.stdout.split("Key released: ")[1].split("\n")[0]
-        if verbose:
-            print(send_command.stdout)
         print(f"Deactivation successful - license key {old_key} is released")
 
 def local_api_show_license(verbose = False):
@@ -129,10 +126,11 @@ def local_api_show_license(verbose = False):
     
     os.chdir(cur_wd)
 
+    if verbose:
+        print(send_command.stdout)
+        print(send_command.stderr)
+
     if len(send_command.stderr) > 0:
-        if verbose:
-            print(send_command.stdout)
-            print(send_command.stderr)
         expired = "Trial already expired"
         if expired in send_command.stderr:
             raise ValueError(expired)
@@ -140,10 +138,6 @@ def local_api_show_license(verbose = False):
             raise ValueError("Error when attempting to show license")
     else:
         license_info = _get_license_info(send_command)
-
-        if verbose:
-            print(send_command.stdout)
-
         for ix, st in license_info.items():
             print(f"{ix}: {st}")
         
@@ -190,17 +184,15 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
 
     os.chdir(cur_wd)
 
+    if verbose:
+        print(send_command.stdout)
+        print(send_command.stderr)
+
     if len(send_command.stderr) > 0:
-        if verbose:
-            print(send_command.stdout)
-            print(send_command.stderr)
         raise ValueError("Calculation failed")
     else:
         model._import_results(out_path)
-        if verbose:
-            print(send_command.stdout)
         print("The calculation is completed, the dataset in the model now contains new calculation results")
-
     
 def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
@@ -239,20 +231,17 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
     os.chdir(cur_wd)
 
+    if verbose:
+        print(send_command.stdout)
+        print(send_command.stderr)
+
     if len(send_command.stderr) > 0:
-        if verbose:
-            print(send_command.stdout)
-            print(send_command.stderr)
         raise ValueError("Sensitivity analysis failed")
     else:
         with open(out_path, "r") as file:
             results_string = file.read()
         sens_results = json.loads(results_string)
         sens_results = _results_to_dotdict(sens_results)
-
-        if verbose:
-            print(send_command.stdout)
-
         return(sens_results)
 
 
