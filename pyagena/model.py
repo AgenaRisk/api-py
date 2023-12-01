@@ -374,7 +374,7 @@ class Model():
                dataset._convert_to_dotdict()
                print(f"Results are successfully imported to case {dataset.id}")
 
-     def export_data(self, filename, dataset_ids=None, include_inputs = False, include_outputs = True):
+     def export_data(self, filename, dataset_ids=None, include_inputs = False, include_outputs = True, excel_compatibility = False):
 
           if dataset_ids is None:
                ds_to_export = self.datasets
@@ -392,8 +392,11 @@ class Model():
                     for ds in ds_to_export:
                          for rs in ds.results:
                               for rv in rs.resultValues:
-                                   df.loc[len(df)] = [ds.id, rs["network"], rs["node"], '"'+rv["label"]+'"', rv["value"]]
-
+                                   if excel_compatibility:
+                                        df.loc[len(df)] = [ds.id, rs["network"], rs["node"], rv["label"], rv["value"]]
+                                   else:
+                                        df.loc[len(df)] = [ds.id, rs["network"], rs["node"], "'"+rv["label"], rv["value"]]
+                                       
                     df.to_csv(filename)
 
                if include_inputs:

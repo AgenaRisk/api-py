@@ -1510,6 +1510,8 @@ The export method will generate a .csv with the following format:
 </tbody>
 </table>
 
+If you're planning to use Microsoft Excel to display and work with the generated .csv file, it is recommended to set the parameter `excel_compatibility` to `True` in the `export_data()` function. This makes sure the state names are displayed correctly as text in the Excel environment.
+
 ### 9.2.2 To a .json File
 
 If the export output is a .json file, then it will contain a list of datasets with all their fields (id, observations, results). .json output can have either inputs, outputs, or both at the same time.

@@ -63,7 +63,10 @@ def local_api_activate_license(key, verbose = False):
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyActivate --key ' + key + '`\\"\\""'
         send_command = subprocess.run(command, capture_output=True, text=True)
 
-    elif platform == "darwin" or platform == "linux" or platform == "linux2":
+    else:
+        if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
+            print(f'This function was not tested for platform {platform} and may not work properly')
+
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--keyActivate --key ' + key]
         send_command = subprocess.run(command, capture_output=True, text=True)
 
@@ -94,7 +97,10 @@ def local_api_deactivate_license(verbose = False):
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyDeactivate`\\"\\""'
         send_command = subprocess.run(command, capture_output=True, text=True)
 
-    elif platform == "darwin" or platform == "linux" or platform == "linux2":
+    else:
+        if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
+            print(f'This function was not tested for platform {platform} and may not work properly')
+
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--keyDeactivate']
         send_command = subprocess.run(command, capture_output=True, text=True)
 
@@ -111,6 +117,10 @@ def local_api_deactivate_license(verbose = False):
         else:
             raise ValueError("Deactivation failed")
     else:
+        notyet = "Product not yet activated"
+        if notyet in send_command.stdout:
+            raise ValueError(notyet)
+        
         old_key = send_command.stdout.split("Key released: ")[1].split("\n")[0]
         print(f"Deactivation successful - license key {old_key} is released")
 
@@ -122,7 +132,10 @@ def local_api_show_license(verbose = False):
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--licenseSummary`\\"\\""'
         send_command = subprocess.run(command, capture_output=True, text=True)
     
-    elif platform == "darwin" or platform == "linux" or platform == "linux2":
+    else:
+        if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
+            print(f'This function was not tested for platform {platform} and may not work properly')
+
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--licenseSummary']
         send_command = subprocess.run(command, capture_output=True, text=True)
     
@@ -159,28 +172,32 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
     else:
         data_json = model._ds_to_json() #if dataset ids are not specified, all datasets in the model are calculated
 
-    model_path = tempdir.name + "/" + data_json[0]["id"] + "_model.cmpx"
-    data_path = tempdir.name + "/" + data_json[0]["id"] + "_dataset.json"
+    model_path = os.path.join(tempdir.name, data_json[0]["id"] + "_model.cmpx")
+    data_path = os.path.join(tempdir.name, data_json[0]["id"] + "_dataset.json")
 
     model_file = model.save_to_file(model_path, strip_data=True)
     with open(data_path, "w") as outfile:
         json.dump(data_json, outfile)
 
+    if cache_path is None:
+        out_path = os.path.join(tempdir.name, data_json[0]["id"] + "_output.json")
+    else:
+        out_path = cache_path
+
     if platform == "win32":
         if cache_path is None:
-            out_path = tempdir.name + "/" + data_json[0]["id"] + "_output.json"
             command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\'`\\"\\""'
         else:
-            out_path = cache_path
             command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--directoryWorking \'' + cur_wd + '\' --model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache`\\"\\""'
         send_command = subprocess.run(command, capture_output=True, text=True)
     
-    elif platform == "darwin" or platform == "linux" or platform == "linux2":
+    else:
+        if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
+            print(f'This function was not tested for platform {platform} and may not work properly')
+
         if cache_path is None:
-            out_path = tempdir.name + "/" + data_json[0]["id"] + "_output.json"
             command = ['mvn', 'exec:java@calculate', '-Dexec.args=--model "' + model_path + '"  --out "' + out_path + '" --data "' + data_path + '"']
         else:
-            out_path = cache_path
             command = ['mvn', 'exec:java@calculate', '-Dexec.args=--directoryWorking "' + cur_wd + '" --model "' + model_path + '"  --out "' + out_path + '" --data "' + data_path + '" --use-cache']
         send_command = subprocess.run(command, capture_output=True, text=True)
 
@@ -215,9 +232,9 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
     tempdir = tempfile.TemporaryDirectory()
 
-    model_path = tempdir.name + "/" + "model.cmpx"
-    config_path = tempdir.name + "/" + "sens_config.json"
-    out_path = tempdir.name + "/" + "output.json"
+    model_path = os.join.path(tempdir.name, "model.cmpx")
+    config_path = os.join.path(tempdir.name, "sens_config.json")
+    out_path = os.path.join(tempdir.name, "output.json")
 
     model_file = model.save_to_file(model_path)
     with open(config_path, "w") as outfile:
@@ -227,7 +244,10 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
         command = 'powershell -command "mvn exec:java@sensitivity \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --config \'' + config_path + '\'`\\"\\""'
         send_command = subprocess.run(command, capture_output=True, text=True)
 
-    elif platform == "darwin" or platform == "linux" or platform == "linux2":
+    else:
+        if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
+            print(f'This function was not tested for platform {platform} and may not work properly')
+
         command = ['mvn' 'exec:java@sensitivity' '-Dexec.args=--model "' + model_path + '"  --out "' + out_path + '" --config "' + config_path + '"']
         send_command = subprocess.run(command, capture_output=True, text=True)
 
