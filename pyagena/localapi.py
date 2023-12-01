@@ -22,7 +22,7 @@ def local_api_clone():
 
 def local_api_compile(verbose = False):
     cur_wd = os.getcwd()
-    os.chdir("./api/")
+    os.chdir(os.path.join('.', 'api'))
 
     checkout = subprocess.run(["git", "checkout", "master"], capture_output=True, text=True)
     if verbose:
@@ -63,7 +63,7 @@ def _get_license_info(mvnout):
 
 def local_api_activate_license(key, verbose = False):
     cur_wd = os.getcwd()
-    os.chdir("./api/")
+    os.chdir(os.path.join('.', 'api'))
 
     if platform == "win32":
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyActivate --key ' + key + '`\\"\\""'
@@ -97,7 +97,7 @@ def local_api_activate_license(key, verbose = False):
 
 def local_api_deactivate_license(verbose = False):
     cur_wd = os.getcwd()
-    os.chdir("./api/")
+    os.chdir(os.path.join('.', 'api'))
     
     if platform == "win32":    
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyDeactivate`\\"\\""'
@@ -132,7 +132,7 @@ def local_api_deactivate_license(verbose = False):
 
 def local_api_show_license(verbose = False):
     cur_wd = os.getcwd()
-    os.chdir("./api/")
+    os.chdir(os.path.join('.', 'api'))
 
     if platform == "win32":
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--licenseSummary`\\"\\""'
@@ -164,7 +164,7 @@ def local_api_show_license(verbose = False):
         
 def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verbose = False):
     cur_wd = os.getcwd()
-    os.chdir("./api/")
+    os.chdir(os.path.join('.', 'api'))
     
     tempdir = tempfile.TemporaryDirectory()
 
@@ -234,7 +234,7 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
         return dot_results
 
     cur_wd = os.getcwd()
-    os.chdir("./api/")
+    os.chdir(os.path.join('.', 'api'))
 
     tempdir = tempfile.TemporaryDirectory()
 
