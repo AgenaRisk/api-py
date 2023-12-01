@@ -41,7 +41,13 @@ def local_api_compile(verbose = False):
     if verbose:
         print(updated.stdout)
         print(updated.stderr)
-    send_command = subprocess.run(['mvn', 'clean', 'compile', '-DskipTests', '-Dmaven.javadoc.skip=true'], capture_output=True, text=True)
+    if platform == "win32":
+        send_command = subprocess.run('powershell -command "mvn clean compile"', capture_output=True, text=True)
+    else:
+        if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
+            print(f'This function was not tested for platform {platform} and may not work properly')
+        send_command = subprocess.run(['mvn', 'clean', 'compile', '-DskipTests'], capture_output=True, text=True)
+        
     os.chdir(cur_wd)
     if verbose:
         print(send_command.stdout)
@@ -207,7 +213,7 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
         print(send_command.stdout)
         print(send_command.stderr)
 
-    if len(send_command.stderr) > 0:
+    if send_command.returncode != 0:
         raise ValueError("Calculation failed")
     else:
         model._import_results(out_path)
@@ -232,8 +238,8 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
     tempdir = tempfile.TemporaryDirectory()
 
-    model_path = os.join.path(tempdir.name, "model.cmpx")
-    config_path = os.join.path(tempdir.name, "sens_config.json")
+    model_path = os.path.join(tempdir.name, "model.cmpx")
+    config_path = os.path.join(tempdir.name, "sens_config.json")
     out_path = os.path.join(tempdir.name, "output.json")
 
     model_file = model.save_to_file(model_path)

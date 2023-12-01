@@ -184,7 +184,7 @@ class Node():
     def set_probabilities(self, probabilities, by_row=False):
         
         if not by_row:
-            if self.distr_type == "Manual":
+            if (self.distr_type == "Manual") or (self.type=="ContinuousInterval" and not self.simulated) or (self.type=="IntegerInterval" and not self.simulated):
                 temp_length = 1
                 subset_length_control = 1
                 if len(self.parents)>0:
@@ -205,7 +205,7 @@ class Node():
                 raise ValueError("The node has expressions instead of a manual NPT")
 
         if by_row:
-            if self.distr_type == "Manual":
+            if (self.distr_type == "Manual")  or (self.type=="ContinuousInterval" and not self.simulated) or (self.type=="IntegerInterval" and not self.simulated):
                 temp_length = 1
                 subset_length_control = 1
                 if len(self.parents)>0:

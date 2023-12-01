@@ -491,13 +491,18 @@ class Model():
                          this_node = Node(id=nd["id"], name=nd["name"], type=nd["configuration"]["type"], simulated=True)
                     nodes_list[idx].append(this_node)
 
-          #setting distr type and states for Manual distr types
+          #setting distr type and states for Manual distr types and non simulated interval nodes
           for idx, ntw in enumerate(agena_nodes):
                for ix, nd in enumerate(ntw):
                     this_node = nodes_list[idx][ix]
+
                     if nd["configuration"]["table"]["type"] == "Manual":
                          this_node.set_distr_type(nd["configuration"]["table"]["type"], from_cmpx=True)    
-                    
+
+                    if "simulated" not in nd["configuration"].keys():
+                         if nd["configuration"]["type"] == "ContinuousInterval" or nd["configuration"]["type"] == "IntegerInterval":
+                              this_node.set_states(nd["configuration"]["states"], from_cmpx=True)                    
+
                     if this_node.distr_type == "Manual":
                          this_node.set_states(nd["configuration"]["states"], from_cmpx=True)                
 
@@ -517,8 +522,12 @@ class Model():
                     if this_node.distr_type == "Manual":
                          this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True)
                     if this_node.distr_type == "Expression":
+                         if this_node.states is not None:
+                              this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True)
                          this_node.set_expressions(nd["configuration"]["table"]["expressions"], from_cmpx=True)
                     if this_node.distr_type == "Partitioned":
+                         if this_node.states is not None:
+                              this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True)
                          this_node.set_expressions(nd["configuration"]["table"]["expressions"], partitioned_parents= nd["configuration"]["table"]["partitions"], from_cmpx=True)
 
                     if "variables" in nd["configuration"].keys():
