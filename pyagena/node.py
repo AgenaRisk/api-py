@@ -184,46 +184,49 @@ class Node():
     def set_probabilities(self, probabilities, by_row=False):
         
         if not by_row:
-            if (self.distr_type == "Manual") or (self.type=="ContinuousInterval" and not self.simulated) or (self.type=="IntegerInterval" and not self.simulated):
-                temp_length = 1
-                subset_length_control = 1
-                if len(self.parents)>0:
-                    for pr in self.parents:
-                        temp_length *= len(pr.states)
+            if not self.simulated:
+            #if (self.distr_type == "Manual") or (self.type=="ContinuousInterval" and not self.simulated) or (self.type=="IntegerInterval" and not self.simulated):
+                if (self.distr_type == "Manual") or (self.type=="ContinuousInterval" and self.states is not None) or (self.type=="IntegerInterval" and self.states is not None):
+                    temp_length = 1
+                    subset_length_control = 1
+                    if len(self.parents)>0:
+                        for pr in self.parents:
+                            temp_length *= len(pr.states)
+                        
+                    for ss in probabilities:
+                        if len(ss)==len(self.states):
+                            subset_length_control *= 1
+                        else:
+                            subset_length_control *= 0
                     
-                for ss in probabilities:
-                    if len(ss)==len(self.states):
-                        subset_length_control *= 1
+                    if (len(probabilities) == temp_length) & (subset_length_control==1):
+                        self.probabilities = probabilities
                     else:
-                        subset_length_control *= 0
-                
-                if (len(probabilities) == temp_length) & (subset_length_control==1):
-                    self.probabilities = probabilities
-                else:
-                    raise ValueError("The number of probabilities does not match the size of node NPT")
+                        raise ValueError("The number of probabilities does not match the size of node NPT")
             else:
-                raise ValueError("The node has expressions instead of a manual NPT")
+                raise ValueError(f"The node {self.id} does not have a manual NPT")
 
         if by_row:
-            if (self.distr_type == "Manual")  or (self.type=="ContinuousInterval" and not self.simulated) or (self.type=="IntegerInterval" and not self.simulated):
-                temp_length = 1
-                subset_length_control = 1
-                if len(self.parents)>0:
-                    for pr in self.parents:
-                        temp_length *= len(pr.states)
+            if not self.simulated:
+                if (self.distr_type == "Manual") or (self.type=="ContinuousInterval" and self.states is not None) or (self.type=="IntegerInterval" and self.states is not None):
+                    temp_length = 1
+                    subset_length_control = 1
+                    if len(self.parents)>0:
+                        for pr in self.parents:
+                            temp_length *= len(pr.states)
+                        
+                    for ss in probabilities:
+                        if len(ss)==temp_length:
+                            subset_length_control *= 1
+                        else:
+                            subset_length_control *= 0
                     
-                for ss in probabilities:
-                    if len(ss)==temp_length:
-                        subset_length_control *= 1
+                    if (len(probabilities) == len(self.states)) & (subset_length_control==1):
+                        self.probabilities = list(map(list, zip(*probabilities)))
                     else:
-                        subset_length_control *= 0
-                
-                if (len(probabilities) == len(self.states)) & (subset_length_control==1):
-                    self.probabilities = list(map(list, zip(*probabilities)))
-                else:
-                    raise ValueError("The number of probabilities does not match the size of node NPT")
+                        raise ValueError("The number of probabilities does not match the size of node NPT")
             else:
-                raise ValueError("The node has expressions instead of a manual NPT")
+                raise ValueError(f"The node {self.id} does not have a manual NPT")
 
     def _get_parents(self):
         par_list = []
