@@ -42,7 +42,7 @@ def local_api_compile(verbose = False):
         print(updated.stdout)
         print(updated.stderr)
     if platform == "win32":
-        send_command = subprocess.run('powershell -command "mvn clean compile"', capture_output=True, text=True)
+        send_command = subprocess.run('powershell -command "mvn clean compile -DskipTests"', capture_output=True, text=True)
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
             print(f'This function was not tested for platform {platform} and may not work properly')
