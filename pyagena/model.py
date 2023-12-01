@@ -393,9 +393,9 @@ class Model():
                          for rs in ds.results:
                               for rv in rs.resultValues:
                                    if excel_compatibility:
-                                        df.loc[len(df)] = [ds.id, rs["network"], rs["node"], rv["label"], rv["value"]]
+                                        df.loc[len(df)] = [ds.id, rs["network"], rs["node"], '="'+rv["label"]+'"', rv["value"]]
                                    else:
-                                        df.loc[len(df)] = [ds.id, rs["network"], rs["node"], "'"+rv["label"], rv["value"]]
+                                        df.loc[len(df)] = [ds.id, rs["network"], rs["node"], rv["label"], rv["value"]]
                                        
                     df.to_csv(filename)
 

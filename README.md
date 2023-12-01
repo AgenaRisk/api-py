@@ -1510,7 +1510,7 @@ The export method will generate a .csv with the following format:
 </tbody>
 </table>
 
-If you're planning to use Microsoft Excel to display and work with the generated .csv file, it is recommended to set the parameter `excel_compatibility` to `True` in the `export_data()` function. This makes sure the state names are displayed correctly as text in the Excel environment.
+If you're planning to use Microsoft Excel to display and work with the generated .csv file, it is recommended to set the parameter `excel_compatibility` to `True` in the `export_data()` function. This makes sure the state names are displayed correctly as text in the Excel environment: if for some nodes in the networks the state name includes a "-" before or between values (for example, "-Infinity - 7.0" or "40.0 - 45.0"), some spreadsheet apps like MS Excel misinterpret this as a formula instead of text, `excel_compatible = True` sends the state names in quotes for MS Excel to interpret as text (this behaviour might add extra characters to state names if  the resulting csv is opened with other spreadsheet/text editing apps, in that case setting the `excel_compatibility = False`, which is the default behaviour, is required). 
 
 ### 9.2.2 To a .json File
 
