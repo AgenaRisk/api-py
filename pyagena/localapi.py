@@ -254,7 +254,7 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
             print(f'This function was not tested for platform {platform} and may not work properly')
 
-        command = ['mvn' 'exec:java@sensitivity' '-Dexec.args=--model "' + model_path + '"  --out "' + out_path + '" --config "' + config_path + '"']
+        command = ['mvn', 'exec:java@sensitivity', '-Dexec.args=--model "' + model_path + '"  --out "' + out_path + '" --config "' + config_path + '"']
         send_command = subprocess.run(command, capture_output=True, text=True)
 
     os.chdir(cur_wd)
