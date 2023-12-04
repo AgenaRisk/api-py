@@ -397,7 +397,7 @@ class Model():
                                    else:
                                         df.loc[len(df)] = [ds.id, rs["network"], rs["node"], rv["label"], rv["value"]]
                                        
-                    df.to_csv(filename)
+                    df.to_csv(filename, index=False)
 
                if include_inputs:
                     df = pd.DataFrame(columns=["Case", "Network", "Node", "State", "Probability"])

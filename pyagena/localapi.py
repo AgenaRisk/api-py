@@ -82,16 +82,16 @@ def local_api_activate_license(key, verbose = False):
         print(send_command.stdout)
         print(send_command.stderr)
 
-    license_info = _get_license_info(send_command)
-    if license_info["Mode"] == "FreeTrial":
-        raise ValueError("Licence key activation failed")        
+    already = "Product already activated"
+    invalid = "Invalid license key"
+    if already in send_command.stdout:
+        raise ValueError(already)
+    elif invalid in send_command.stdout:
+        raise ValueError(invalid)
     else:
-        already = "Product already activated"
-        invalid = "Invalid license key"
-        if already in send_command.stdout:
-            raise ValueError(already)
-        elif invalid in send_command.stdout:
-            raise ValueError(invalid)
+        license_info = _get_license_info(send_command)
+        if license_info["Mode"] == "FreeTrial":
+            raise ValueError("Licence key activation failed")        
         else:
             print("License key activated successfully")
 
@@ -116,14 +116,16 @@ def local_api_deactivate_license(verbose = False):
         print(send_command.stdout)
         print(send_command.stderr)
 
+    notyet = "Product not yet activated"
     if len(send_command.stderr) > 0:
         limit_reach = "The license has reached it's allowed deactivations limit"
         if limit_reach in send_command.stderr:
             raise ValueError(limit_reach)
+        elif notyet in send_command.stdout:
+            raise ValueError(notyet)
         else:
             raise ValueError("Deactivation failed")
     else:
-        notyet = "Product not yet activated"
         if notyet in send_command.stdout:
             raise ValueError(notyet)
         
