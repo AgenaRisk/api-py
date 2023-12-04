@@ -407,7 +407,7 @@ class Model():
                               for ent in obs.entries:
                                    df.loc[len(df)] = [ds.id, obs.network, obs.node, ent.value, ent.weight/len(obs.entries)]
                     
-                    df.to_csv(filename)
+                    df.to_csv(filename, index=False)
 
           elif os.path.splitext(filename)[1] == ".json":
 
