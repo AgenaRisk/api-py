@@ -4,7 +4,7 @@ from .dataset import Dataset, dotdict
 from .model import Model
 
 from sys import platform
-import os
+import os, shutil, stat
 import tempfile
 import json
 import subprocess
@@ -57,6 +57,20 @@ def local_api_compile(verbose = False):
     else:
         raise ValueError("maven compile has failed")
 
+
+def local_api_init(verbose = False):
+
+    if os.path.isdir("./api"):
+        def rm_dir_readonly(func, path, _):
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+
+        shutil.rmtree("./api/", onerror=rm_dir_readonly)
+
+    local_api_clone()
+    local_api_compile(verbose = verbose)
+
+
 def _get_license_info(mvnout):
     summary = "{" + mvnout.stdout.split("{")[1].split("}")[0].strip() + "}"
     return json.loads(summary)
@@ -85,7 +99,7 @@ def local_api_activate_license(key, verbose = False):
     already = "Product already activated"
     invalid = "Invalid license key"
     if already in send_command.stdout:
-        raise ValueError(already)
+        print(already)
     elif invalid in send_command.stdout:
         raise ValueError(invalid)
     else:
@@ -122,12 +136,12 @@ def local_api_deactivate_license(verbose = False):
         if limit_reach in send_command.stderr:
             raise ValueError(limit_reach)
         elif notyet in send_command.stdout:
-            raise ValueError(notyet)
+            print(notyet)
         else:
             raise ValueError("Deactivation failed")
     else:
         if notyet in send_command.stdout:
-            raise ValueError(notyet)
+            print(notyet)
         
         old_key = send_command.stdout.split("Key released: ")[1].split("\n")[0]
         print(f"Deactivation successful - license key {old_key} is released")
