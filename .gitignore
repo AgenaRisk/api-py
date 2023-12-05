@@ -4,3 +4,4 @@ pyagena.egg-info
 /dist
 /dev
 __pycache__
+/api
