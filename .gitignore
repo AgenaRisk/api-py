@@ -3,3 +3,4 @@ pyagena.egg-info
 /build
 /dist
 /dev
+__pycache__
