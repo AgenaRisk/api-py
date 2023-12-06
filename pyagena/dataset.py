@@ -27,7 +27,11 @@ class Dataset():
             else:
                 result = result.pop()
                 if node_state is not None:
-                    state_value = [rv for rv in result['resultValues'] if rv['label'] == node_state].pop()['value']
+                    all_states = [st["label"] for st in result["resultValues"]]
+                    if node_state not in all_states:
+                        raise ValueError(f"The result does not have a value for the state {node_state}")
+                    else:
+                        state_value = [rv for rv in result['resultValues'] if rv['label'] == node_state].pop()['value']
                     return state_value
                 else:
                     return result
