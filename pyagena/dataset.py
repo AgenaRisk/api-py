@@ -20,12 +20,18 @@ class Dataset():
         
         self._convert_to_dotdict()
     
-    def get_result(self, network_id, node_id):
-        result = [res for res in self.results if res.node == node_id and res.network == network_id]
-        if len(result) == 1:
-            return result.pop()
-        if len(result) == 0:
-            return None
+    def get_result(self, network_id, node_id, node_state = None):
+            result = [res for res in self.results if res.node == node_id and res.network == network_id]
+            if len(result) == 0:
+                return None
+            else:
+                result = result.pop()
+                if node_state is not None:
+                    state_value = [rv for rv in result['resultValues'] if rv['label'] == node_state].pop()['value']
+                    return state_value
+                else:
+                    return result
+
         
     def enter_observation(self, network_id, node_id, value, variable_name=None):
           

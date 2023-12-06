@@ -211,8 +211,8 @@ class Model():
           else:
                if dataset_id not in self._get_datasets():
                     raise ValueError(f"The dataset {dataset_id} does not exist")
-               
-               ds = self.get_dataset(dataset_id)
+               else:
+                    ds = self.get_dataset(dataset_id)
           
           ds.enter_observation(network_id=network_id, node_id=node_id, value=value, variable_name=variable_name)
                     
@@ -430,6 +430,38 @@ class Model():
           else:
                raise ValueError("The exported file should be in either .csv or .json format")  
 
+     def get_result(self, network_id, node_id, node_state = None, dataset_id = None):
+          if dataset_id is None:
+               ds = self.datasets[0]
+          else:
+               if dataset_id not in self._get_datasets():
+                    raise ValueError(f"The dataset {dataset_id} does not exist")
+               else:
+                    ds = self.get_dataset(dataset_id)
+               
+          result = ds.get_result(network_id=network_id, node_id=node_id, node_state=node_state)
+          return result
+
+     def export_node_results(self, network_id, node_id, filename=None):
+          this_net = self.get_network(network_id)
+          this_node = this_net.get_node(node_id=node_id)
+          rows = self._get_datasets()
+          columns = this_node.states
+          output_results = pd.DataFrame(columns=columns, index=rows)
+
+          for dt in self.datasets:
+               res = dt.get_result(network_id=network_id, node_id=node_id)
+               res_values = res.resultValues
+               for vl in res_values:
+                    for st in this_node.states:
+                         if vl.label == st:
+                              output_results.loc[dt.id,st] = vl.value
+
+          output_results.index.name = "Case"
+          if filename is None:
+               filename = node_id + "_batch_results.csv"
+          output_results.to_csv(filename)
+
      def create_sensitivity_config(self, **kwargs):
           sens_config = {}
           for fld in kwargs:
@@ -522,11 +554,11 @@ class Model():
                     if this_node.distr_type == "Manual":
                          this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True)
                     if this_node.distr_type == "Expression":
-                         if this_node.states is not None:
+                         if (this_node.states is not None) and ("probabilities" in nd["configuration"]["table"].keys()):
                               this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True)
                          this_node.set_expressions(nd["configuration"]["table"]["expressions"], from_cmpx=True)
                     if this_node.distr_type == "Partitioned":
-                         if this_node.states is not None:
+                         if (this_node.states is not None) and ("probabilities" in nd["configuration"]["table"].keys()):
                               this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True)
                          this_node.set_expressions(nd["configuration"]["table"]["expressions"], partitioned_parents= nd["configuration"]["table"]["partitions"], from_cmpx=True)
 
