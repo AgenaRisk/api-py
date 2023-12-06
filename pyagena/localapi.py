@@ -173,10 +173,10 @@ def local_api_show_license(verbose = False):
             raise ValueError(expired)
         else:
             raise ValueError("Error when attempting to show license")
-    else:
-        license_info = _get_license_info(send_command)
-        for ix, st in license_info.items():
-            print(f"{ix}: {st}")
+        
+    license_info = _get_license_info(send_command)
+    for ix, st in license_info.items():
+        print(f"{ix}: {st}")
         
 def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verbose = False):
     cur_wd = os.getcwd()
