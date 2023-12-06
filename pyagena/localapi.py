@@ -142,9 +142,9 @@ def local_api_deactivate_license(verbose = False):
     else:
         if notyet in send_command.stdout:
             print(notyet)
-        
-        old_key = send_command.stdout.split("Key released: ")[1].split("\n")[0]
-        print(f"Deactivation successful - license key {old_key} is released")
+        else:
+            old_key = send_command.stdout.split("Key released: ")[1].split("\n")[0]
+            print(f"Deactivation successful - license key {old_key} is released")
 
 def local_api_show_license(verbose = False):
     cur_wd = os.getcwd()
