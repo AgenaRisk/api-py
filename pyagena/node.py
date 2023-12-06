@@ -181,50 +181,59 @@ class Node():
         
         self.probabilities = [[1/len(self.states)] * len(self.states)] * temp_length
 
-    def set_probabilities(self, probabilities, by_row=False):
+    def set_probabilities(self, probabilities, by_row=False, from_cmpx = False):
         
         if not by_row:
             if not self.simulated:
-            #if (self.distr_type == "Manual") or (self.type=="ContinuousInterval" and not self.simulated) or (self.type=="IntegerInterval" and not self.simulated):
                 if (self.distr_type == "Manual") or (self.type=="ContinuousInterval" and self.states is not None) or (self.type=="IntegerInterval" and self.states is not None):
-                    temp_length = 1
-                    subset_length_control = 1
-                    if len(self.parents)>0:
-                        for pr in self.parents:
-                            temp_length *= len(pr.states)
-                        
-                    for ss in probabilities:
-                        if len(ss)==len(self.states):
-                            subset_length_control *= 1
-                        else:
-                            subset_length_control *= 0
+                    if not from_cmpx:
+                        temp_length = 1
+                        subset_length_control = 1
+                        if len(self.parents)>0:
+                            for pr in self.parents:
+                                if pr.states is not None:
+                                    temp_length *= len(pr.states)
                     
-                    if (len(probabilities) == temp_length) & (subset_length_control==1):
-                        self.probabilities = probabilities
+                        for ss in probabilities:
+                            if len(ss)==len(self.states):
+                                subset_length_control *= 1
+                            else:
+                                subset_length_control *= 0
+                    
+                        if (len(probabilities) == temp_length) & (subset_length_control==1):
+                            self.probabilities = probabilities
+                        else:
+                            raise ValueError("The number of probabilities does not match the size of node NPT")
                     else:
-                        raise ValueError("The number of probabilities does not match the size of node NPT")
+                        self.probabilities = probabilities
+
             else:
                 raise ValueError(f"The node {self.id} does not have a manual NPT")
 
         if by_row:
             if not self.simulated:
                 if (self.distr_type == "Manual") or (self.type=="ContinuousInterval" and self.states is not None) or (self.type=="IntegerInterval" and self.states is not None):
-                    temp_length = 1
-                    subset_length_control = 1
-                    if len(self.parents)>0:
-                        for pr in self.parents:
-                            temp_length *= len(pr.states)
-                        
-                    for ss in probabilities:
-                        if len(ss)==temp_length:
-                            subset_length_control *= 1
-                        else:
-                            subset_length_control *= 0
+                    if not from_cmpx:
+                        temp_length = 1
+                        subset_length_control = 1
+                        if len(self.parents)>0:
+                            for pr in self.parents:
+                                if pr.states is not None:
+                                    temp_length *= len(pr.states)
+
+                        if (self.type != "ContinuousInterval") or (self.type != "IntegerInterval"):
+                            for ss in probabilities:
+                                if len(ss)==temp_length:
+                                    subset_length_control *= 1
+                                else:
+                                    subset_length_control *= 0
                     
-                    if (len(probabilities) == len(self.states)) & (subset_length_control==1):
-                        self.probabilities = list(map(list, zip(*probabilities)))
+                        if (len(probabilities) == len(self.states)) & (subset_length_control==1):
+                            self.probabilities = list(map(list, zip(*probabilities)))
+                        else:
+                            raise ValueError("The number of probabilities does not match the size of node NPT")
                     else:
-                        raise ValueError("The number of probabilities does not match the size of node NPT")
+                        self.probabilities = list(map(list, zip(*probabilities)))
             else:
                 raise ValueError(f"The node {self.id} does not have a manual NPT")
 

@@ -552,14 +552,14 @@ class Model():
                     this_node.set_distr_type(nd["configuration"]["table"]["type"], from_cmpx=True)  
 
                     if this_node.distr_type == "Manual":
-                         this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True)
+                         this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True, from_cmpx=True)
                     if this_node.distr_type == "Expression":
                          if (this_node.states is not None) and ("probabilities" in nd["configuration"]["table"].keys()):
-                              this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True)
+                              this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True, from_cmpx=True)
                          this_node.set_expressions(nd["configuration"]["table"]["expressions"], from_cmpx=True)
                     if this_node.distr_type == "Partitioned":
                          if (this_node.states is not None) and ("probabilities" in nd["configuration"]["table"].keys()):
-                              this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True)
+                              this_node.set_probabilities(nd["configuration"]["table"]["probabilities"], by_row=True, from_cmpx=True)
                          this_node.set_expressions(nd["configuration"]["table"]["expressions"], partitioned_parents= nd["configuration"]["table"]["partitions"], from_cmpx=True)
 
                     if "variables" in nd["configuration"].keys():
