@@ -5,6 +5,7 @@ from .dataset import Dataset
 import json
 import pandas as pd
 import os
+import logging
 
 class Model():         
      def __init__(self, networks=None, id=None, datasets=None, network_links=None, settings=None):
@@ -57,7 +58,7 @@ class Model():
                raise ValueError("There is already a network with this id in the model")
           else:
                self.networks.append(network)
-               print(f"The network {network.id} is successfully added to the model")
+               logging.info(f"The network {network.id} is successfully added to the model")
 
      def remove_network(self, id):
           network = self.get_network(id)
@@ -65,7 +66,7 @@ class Model():
                raise ValueError("This network is not in the model")
           else:
                self.networks.remove(network)
-               print(f"The network is successfully removed from the model - if {network.id} had any links to other networks in the model, make sure to adjust network links accordingly")
+               logging.warning(f"The network is successfully removed from the model - if {network.id} had any links to other networks in the model, make sure to adjust network links accordingly")
 
      def _get_networks(self):
         nets_list = []
@@ -172,19 +173,19 @@ class Model():
           
           if link_to_remove in self.network_links:
                self.network_links.remove(link_to_remove)
-               print("The network link is successfully removed from the model")
+               logging.info("The network link is successfully removed from the model")
           else:
                raise ValueError("This network link does not exist in the model")
 
      def remove_all_network_links(self):
           self.network_links = []
-          print("All network links are removed from the model")
+          logging.info("All network links are removed from the model")
 
      def create_dataset(self, dataset_id, observations = None, from_cmpx=False):
           new_ds = Dataset(id=dataset_id, observations=observations)
           self.datasets.append(new_ds)
           if not from_cmpx:
-               print(f"The dataset {dataset_id} is successfully created")
+               logging.info(f"The dataset {dataset_id} is successfully created")
           return new_ds
 
      def remove_dataset(self, dataset_id, from_cmpx=False):
@@ -194,7 +195,7 @@ class Model():
           del_ds = self.get_dataset(dataset_id)
           self.datasets.remove(del_ds)
           if not from_cmpx:
-               print(f"The dataset {dataset_id} is successfully removed from the model")
+               logging.info(f"The dataset {dataset_id} is successfully removed from the model")
 
      def _get_datasets(self):
           ds_list = []
@@ -239,17 +240,17 @@ class Model():
           for ds in self.datasets:
                ds.observations = []
           
-          print("All observations in all datasets in the model are successfully cleared")
+          logging.info("All observations in all datasets in the model are successfully cleared")
 
      def change_settings(self, **kwargs):
           for fld in kwargs:
                if fld in self.settings.keys():
                     self.settings[fld] = kwargs[fld]
-                    print(f"Model setting {fld} is successfully updated")
+                    logging.info(f"Model setting {fld} is successfully updated")
 
      def default_settings(self):
           self.settings = {"parameterLearningLogging":False, "discreteTails":False, "sampleSizeRanked":5, "convergence":0.01, "simulationLogging":False, "iterations":50, "tolerance":1}
-          print("Model settings are successfully reset to default")
+          logging.info("Model settings are successfully reset to default")
 
      def save_to_file(self, filename, strip_data = False):
           if os.path.splitext(filename)[1] == ".cmpx" or os.path.splitext(filename)[1] == ".json":
@@ -326,7 +327,7 @@ class Model():
                     if ds_id in self._get_datasets():
                          self.remove_dataset(ds_id, from_cmpx=True)
                     self.create_dataset(ix, from_cmpx=True)
-                    print(f"The dataset {ds_id} is created or updated in the model")
+                    logging.info(f"The dataset {ds_id} is created or updated in the model")
                     for idx, cl in enumerate(data.columns):
                          this_net = cl.split(".")[0]
                          this_node = cl.split(".")[1]
@@ -348,7 +349,7 @@ class Model():
                          this_ds = self.get_dataset(ds_id)
                          this_ds.results = ds["results"]                   
           
-                    print(f"The dataset {ds_id} is created or updated in the model")
+                    logging.info(f"The dataset {ds_id} is created or updated in the model")
                                    
           else:
                raise ValueError("Data file should be in .csv or .json format")
@@ -372,7 +373,7 @@ class Model():
                dataset = self.get_dataset(dataset_id)
                dataset.results = results
                dataset._convert_to_dotdict()
-               print(f"Results are successfully imported to case {dataset.id}")
+               logging.info(f"Results are successfully imported to case {dataset.id}")
 
      def export_data(self, filename, dataset_ids=None, include_inputs = False, include_outputs = True, excel_compatibility = False):
 

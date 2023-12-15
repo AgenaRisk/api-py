@@ -1,3 +1,5 @@
+import logging
+
 class Node():
 
     def __init__(self, id, name=None, description=None, type=None, simulated=None, states=None):
@@ -124,10 +126,10 @@ class Node():
         if len(self.states) != previous_states:
             self._reset_probabilities()
             if not from_cmpx:
-                print("The node states are updated, the NPT values are reset to uniform because the number of states has changed")
+                logging.info("The node states are updated, the NPT values are reset to uniform because the number of states has changed")
         else:
             if not from_cmpx:
-                print("The node states are updated")
+                logging.info("The node states are updated")
             
     def add_parent(self, new_parent: "Node", from_cmpx=False):
 
@@ -148,14 +150,14 @@ class Node():
             if new_parent.distr_type == "Manual":
                 self._reset_probabilities()
                 if not from_cmpx:
-                    print(f"The node {new_parent.name} has been added to the parents of {self.name} and NPT values are reset to uniform")
+                    logging.info(f"The node {new_parent.name} has been added to the parents of {self.name} and NPT values are reset to uniform")
             else:
                 self.set_distr_type("Expression", from_cmpx=from_cmpx)
                 if not from_cmpx:
-                    print(f"The node {new_parent.name} has been added to the parents of {self.name} and distribution (table) type of {self.name} is changed to expression")
+                    logging.info(f"The node {new_parent.name} has been added to the parents of {self.name} and distribution (table) type of {self.name} is changed to expression")
         else:
             if not from_cmpx:
-                print(f"The node {new_parent.name} has been added to the parents of {self.name} and now can be used in its expression")
+                logging.info(f"The node {new_parent.name} has been added to the parents of {self.name} and now can be used in its expression")
 
     def _addparentbyID(self, parentslist: list, parentid: str):
         par = [pr for pr in parentslist if pr.id==parentid].pop()
@@ -167,10 +169,10 @@ class Node():
 
         if self.distr_type == "Manual":
             self._reset_probabilities()
-            print(f"The node {old_parent.name} has been removed from the parents of {self.name} and NPT values are reset to uniform")
+            logging.info(f"The node {old_parent.name} has been removed from the parents of {self.name} and NPT values are reset to uniform")
         else:
             self.expressions = "Normal(0,1000000)"
-            print(f"The node {old_parent.name} has been removed from the parents of {self.name} and the expression has been reset to default")
+            logging.info(f"The node {old_parent.name} has been removed from the parents of {self.name} and the expression has been reset to default")
 
     # A function to reset the manual NPTs to default uniform when a parent is added or removed
     def _reset_probabilities(self):
@@ -282,7 +284,7 @@ class Node():
         else:
             self.variables.append({variable_name:variable_value})
             if not from_cmpx:
-                print("The variable (constant) is successfully added to the node")
+                logging.info("The variable (constant) is successfully added to the node")
 
     def remove_variable(self, variable_name):
         if variable_name in self._get_variable_names():
@@ -290,7 +292,7 @@ class Node():
                 (k, v), = vr.items()
                 if k == variable_name:
                     self.variables.pop(ix)
-            print("The variable (constant) is removed from the node")
+            logging.info("The variable (constant) is removed from the node")
         else:
             raise ValueError(f"The node does not have a variable called {variable_name}")
 
@@ -302,17 +304,17 @@ class Node():
             self.expressions = None
             self._reset_probabilities()
             if not from_cmpx:
-                print("The node's distribution type is converted to a manual table and a default NPT is assigned")
+                logging.info("The node's distribution type is converted to a manual table and a default NPT is assigned")
         
         if (self.distr_type=="Expression") | (self.distr_type=="Partitioned"):
             self.probabilities = None
             if self.expressions == None:
                 self.expressions = "Normal(0,1000000)"
                 if not from_cmpx:
-                    print("The node's distribution type is converted to expression (or partitioned) and a default expression is assigned")
+                    logging.info("The node's distribution type is converted to expression (or partitioned) and a default expression is assigned")
             else:
                 if not from_cmpx:
-                    print("The node's distribution type is converted to expression (or partitioned)")
+                    logging.info("The node's distribution type is converted to expression (or partitioned)")
 
 
     @property
@@ -331,7 +333,6 @@ class Node():
             raise ValueError("Simulation nodes cannot have a manual table definition")
 
         self.__distr_type = value
-
 
 
     @property

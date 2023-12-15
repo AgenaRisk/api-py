@@ -1,5 +1,6 @@
 from .node import Node
 
+import logging
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -84,13 +85,13 @@ class Network():
             raise ValueError(f"There is already a node in the network with the id {new_node.id}")
         else:
             self.nodes.append(new_node)
-            print(f"The node {new_node.id} is successfully added to the network")
+            logging.info(f"The node {new_node.id} is successfully added to the network")
 
     def remove_node(self, node_id):  
         old_node = self.get_node(node_id)
         if old_node in self.nodes:
             self.nodes.remove(old_node)
-            print(f"The node {node_id} is successfully removed from the network - if {node_id} had any child nodes in the network, make sure to adjust their parents accordingly")
+            logging.info(f"The node {node_id} is successfully removed from the network - if {node_id} had any child nodes in the network, make sure to adjust their parents accordingly")
         else:
             raise ValueError(f"The network {self.id} does not have a node with the id {node_id}")
 

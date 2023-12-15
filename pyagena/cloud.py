@@ -7,6 +7,7 @@ import requests as re
 from getpass import getpass
 import time    
 import json
+import logging
 
 class login():
 
@@ -30,7 +31,7 @@ class login():
         login_response = re.post(login_url, headers=login_header, data=login_body)
 
         if login_response.status_code == 200:
-            print("Authentication to agena.ai cloud servers is successful")
+            logging.info("Authentication to agena.ai cloud servers is successful")
             self.access_token = login_response.json()["access_token"]
             self.refresh_token = login_response.json()["refresh_token"]
             self.login_time = int(time.time())
@@ -50,10 +51,10 @@ class login():
     def set_debug(self, debug:bool):
         if debug:
             self.debug = True
-            print("Cloud operation results will display detailed debugging messages")
+            logging.info("Cloud operation results will display detailed debugging messages")
         if not debug:
             self.debug = False
-            print("Clod operation results will not display detailed debug messages")
+            logging.info("Clod operation results will not display detailed debug messages")
 
     def set_server_url(self, url):
         last_char = url[-1]
@@ -61,11 +62,11 @@ class login():
             url = url[:-1]
 
         self.server = url
-        print(f"The root of the server URL for cloud operations is set as {url}")
+        logging.info(f"The root of the server URL for cloud operations is set as {url}")
 
     def reset_server_url(self):
         self.server = "https://api.agena.ai"
-        print(f"The root of the server URL for cloud operations is reset to https://api.agena.ai")
+        logging.info(f"The root of the server URL for cloud operations is reset to https://api.agena.ai")
 
     def refresh_auth(self):
         ref_url = "https://auth.agena.ai/realms/cloud/protocol/openid-connect/token"
@@ -101,10 +102,10 @@ class login():
         calculate_response = re.post(calculate_url, headers={"Authorization":f"Bearer {self.access_token}"},json=calculate_body)
 
         if calculate_response.status_code == 200:
-            print(calculate_response.json()["messages"])
+            logging.info(calculate_response.json()["messages"])
             if self.debug:
                 for db in calculate_response.json()["debug"]:
-                    print(db)
+                    logging.info(db)
             
             if calculate_response.json()["status"]=="success":
                 if dataset_id is None:
@@ -116,8 +117,8 @@ class login():
                             ds.results = calculate_response.json()["results"]
                             ds._convert_to_dotdict()
         elif calculate_response.status_code == 202:           
-            print(calculate_response.json()["messages"])
-            print("Polling has started, polling for calculation results will update every 3 seconds")
+            logging.info(calculate_response.json()["messages"])
+            logging.info("Polling has started, polling for calculation results will update every 3 seconds")
             
             polling_url = calculate_response.json()["pollingUrl"]
             poll_status = 202
@@ -135,10 +136,10 @@ class login():
                 time.sleep(3)
 
             if polled_response.status_code == 200:
-                print(polled_response.json()["messages"])
+                logging.info(polled_response.json()["messages"])
                 if self.debug:
                     for db in polled_response.json()["debug"]:
-                        print(db)
+                        logging.info(db)
 
                 if polled_response.json()["status"]=="success":
                     if dataset_id is None:
@@ -153,13 +154,13 @@ class login():
             else:
                 if self.debug:
                     for db in polled_response.json()["debug"]:
-                        print(db)
+                        logging.info(db)
                 raise ValueError(polled_response.json()["messages"]) 
         
         else:
             if self.debug:
                 for db in calculate_response.json()["debug"]:
-                    print(db)
+                    logging.info(db)
             raise ValueError(calculate_response.json()["messages"])
         
     def sensitivity_analysis(self, model:Model, sens_config):
@@ -191,10 +192,10 @@ class login():
         sa_response = re.post(sa_url, headers={"Authorization":f"Bearer {self.access_token}"},json=sa_body)
 
         if sa_response.status_code == 200:
-            print(sa_response.json()["messages"])
+            logging.info(sa_response.json()["messages"])
             if self.debug:
                 for db in sa_response.json()["debug"]:
-                    print(db)
+                    logging.info(db)
             
             if sa_response.json()["status"]=="success":
                 sa_results = {}
@@ -204,8 +205,8 @@ class login():
                 sa_results = _results_to_dotdict(sa_results)
         
         elif sa_response.status_code == 202:
-            print(sa_response.json()["messages"])
-            print("Polling has started, polling for calculation results will update every 3 seconds")
+            logging.info(sa_response.json()["messages"])
+            logging.info("Polling has started, polling for calculation results will update every 3 seconds")
             
             polling_url = sa_response.json()["pollingUrl"]
             poll_status = 202
@@ -223,10 +224,10 @@ class login():
                 time.sleep(3)
 
             if polled_response.status_code == 200:
-                print(polled_response.json()["messages"])
+                logging.info(polled_response.json()["messages"])
                 if self.debug:
                     for db in polled_response.json()["debug"]:
-                        print(db)
+                        logging.info(db)
 
                 if polled_response.json()["status"]=="success":
                     sa_results = {}
@@ -238,13 +239,13 @@ class login():
             else:
                 if self.debug:
                     for db in polled_response.json()["debug"]:
-                        print(db)
+                        logging.info(db)
                 raise ValueError(polled_response.json()["messages"])
                 
         else:
             if self.debug:
                 for db in sa_response.json()["debug"]:
-                    print(db)
+                    logging.info(db)
             raise ValueError(sa_response.json()["messages"])
         
         return sa_results

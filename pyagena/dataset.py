@@ -1,3 +1,5 @@
+import logging
+
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
     __getattr__ = dict.get
@@ -80,35 +82,35 @@ class Dataset():
             if obs_rewrite:
                 self.observations[rewrite_idx] = new_obs
                 if variable_name is None:
-                    print(f"The observation of {value} is entered to the node {node_id}")
+                    logging.info(f"The observation of {value} is entered to the node {node_id}")
                 else:
-                    print(f"The observation of {variable_name} = {value} is entered to the node {node_id}")
+                    logging.info(f"The observation of {variable_name} = {value} is entered to the node {node_id}")
             if not obs_rewrite:
                 self.observations.append(new_obs)
                 if var_obs_check:
-                    print(f"The observation of {value} is entered to the node {node_id} with existing variable observations, in calculations the variable observations will be ignored")
+                    logging.warning(f"The observation of {value} is entered to the node {node_id} with existing variable observations, in calculations the variable observations will be ignored")
                 else:
                     if variable_name is None:
-                        print(f"The observation of {value} is entered to the node {node_id}")
+                        logging.info(f"The observation of {value} is entered to the node {node_id}")
                     else:
-                        print(f"The observation of {variable_name} = {value} is entered to the node {node_id}")
+                        logging.info(f"The observation of {variable_name} = {value} is entered to the node {node_id}")
 
         else:
             self.observations.append(new_obs)
             if variable_name is None:
-                print(f"The observation of {value} is entered to the node {node_id}")
+                logging.info(f"The observation of {value} is entered to the node {node_id}")
             else:
-                print(f"The observation of {variable_name} = {value} is entered to the node {node_id}")
+                logging.info(f"The observation of {variable_name} = {value} is entered to the node {node_id}")
 
     def remove_observation(self, network_id, node_id):
 
         obs_del = [obs for obs in self.observations if obs["node"]==node_id and obs["network"]==network_id].pop()
         self.observations.remove(obs_del)
-        print("The observation is successfully removed")
+        logging.info("The observation is successfully removed")
     
     def clear_all_observations(self):
           self.observations = []
-          print("All observations in the dataset are successfully cleared")
+          logging.info("All observations in the dataset are successfully cleared")
 
     def _convert_to_dotdict(self):
         dot_obs = []

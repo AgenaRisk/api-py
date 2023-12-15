@@ -8,6 +8,7 @@ import os, shutil, stat
 import tempfile
 import json
 import subprocess
+import logging
 
 def local_api_clone():
     send_command = subprocess.run(["git", "clone", "https://github.com/AgenaRisk/api.git"], capture_output=True, text=True)
@@ -16,9 +17,9 @@ def local_api_clone():
     if already in send_command.stderr:
         raise ValueError("API clone failed - destination path 'api' already exists and is not an empty directory")
     else:
-        print(send_command.stdout)
-        print(send_command.stderr)
-        print("The local api environment is cloned to the working directory successfully")
+        logging.info(send_command.stdout)
+        logging.info(send_command.stderr)
+        logging.info("The local api environment is cloned to the working directory successfully")
 
 def local_api_compile(verbose = False):
     cur_wd = os.getcwd()
@@ -26,34 +27,34 @@ def local_api_compile(verbose = False):
 
     checkout = subprocess.run(["git", "checkout", "master"], capture_output=True, text=True)
     if verbose:
-        print(checkout.stdout)
-        print(checkout.stderr)
+        logging.info(checkout.stdout)
+        logging.info(checkout.stderr)
     
     pull = subprocess.run(["git", "pull"], capture_output=True, text=True)
     if verbose:
-        print(pull.stdout)
-        print(pull.stderr)
+        logging.info(pull.stdout)
+        logging.info(pull.stderr)
     get_tag = subprocess.run(["git", "describe", "--tags", "--abbrev=0"], capture_output=True, text=True)
     tag = get_tag.stdout.strip()
     tag_comm = ['git', 'checkout', tag]
 
     updated = subprocess.run(tag_comm, capture_output=True, text=True)
     if verbose:
-        print(updated.stdout)
-        print(updated.stderr)
+        logging.info(updated.stdout)
+        logging.info(updated.stderr)
     if platform == "win32":
         send_command = subprocess.run('powershell -command "mvn clean compile -DskipTests"', capture_output=True, text=True)
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            print(f'This function was not tested for platform {platform} and may not work properly')
+            logging.info(f'This function was not tested for platform {platform} and may not work properly')
         send_command = subprocess.run(['mvn', 'clean', 'compile', '-DskipTests'], capture_output=True, text=True)
         
     os.chdir(cur_wd)
     if verbose:
-        print(send_command.stdout)
-        print(send_command.stderr)
+        logging.info(send_command.stdout)
+        logging.info(send_command.stderr)
     if send_command.returncode == 0:
-        print("The local api environment is compiled with maven successfully")
+        logging.info("The local api environment is compiled with maven successfully")
     else:
         raise ValueError("maven compile has failed")
 
@@ -85,7 +86,7 @@ def local_api_activate_license(key, verbose = False):
 
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            print(f'This function was not tested for platform {platform} and may not work properly')
+            logging.info(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--keyActivate --key ' + key]
         send_command = subprocess.run(command, capture_output=True, text=True)
@@ -93,13 +94,13 @@ def local_api_activate_license(key, verbose = False):
     os.chdir(cur_wd)
 
     if verbose:
-        print(send_command.stdout)
-        print(send_command.stderr)
+        logging.info(send_command.stdout)
+        logging.info(send_command.stderr)
 
     already = "Product already activated"
     invalid = "Invalid license key"
     if already in send_command.stdout:
-        print(already)
+        logging.info(already)
     elif invalid in send_command.stdout:
         raise ValueError(invalid)
     else:
@@ -107,7 +108,7 @@ def local_api_activate_license(key, verbose = False):
         if license_info["Mode"] == "FreeTrial":
             raise ValueError("Licence key activation failed")        
         else:
-            print("License key activated successfully")
+            logging.info("License key activated successfully")
 
 def local_api_deactivate_license(verbose = False):
     cur_wd = os.getcwd()
@@ -119,7 +120,7 @@ def local_api_deactivate_license(verbose = False):
 
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            print(f'This function was not tested for platform {platform} and may not work properly')
+            logging.info(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--keyDeactivate']
         send_command = subprocess.run(command, capture_output=True, text=True)
@@ -127,8 +128,8 @@ def local_api_deactivate_license(verbose = False):
     os.chdir(cur_wd)
 
     if verbose:
-        print(send_command.stdout)
-        print(send_command.stderr)
+        logging.info(send_command.stdout)
+        logging.info(send_command.stderr)
 
     notyet = "Product not yet activated"
     if len(send_command.stderr) > 0:
@@ -136,15 +137,15 @@ def local_api_deactivate_license(verbose = False):
         if limit_reach in send_command.stderr:
             raise ValueError(limit_reach)
         elif notyet in send_command.stdout:
-            print(notyet)
+            logging.info(notyet)
         else:
             raise ValueError("Deactivation failed")
     else:
         if notyet in send_command.stdout:
-            print(notyet)
+            logging.info(notyet)
         else:
             old_key = send_command.stdout.split("Key released: ")[1].split("\n")[0]
-            print(f"Deactivation successful - license key {old_key} is released")
+            logging.info(f"Deactivation successful - license key {old_key} is released")
 
 def local_api_show_license(verbose = False):
     cur_wd = os.getcwd()
@@ -156,7 +157,7 @@ def local_api_show_license(verbose = False):
     
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            print(f'This function was not tested for platform {platform} and may not work properly')
+            logging.info(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--licenseSummary']
         send_command = subprocess.run(command, capture_output=True, text=True)
@@ -164,8 +165,8 @@ def local_api_show_license(verbose = False):
     os.chdir(cur_wd)
 
     if verbose:
-        print(send_command.stdout)
-        print(send_command.stderr)
+        logging.info(send_command.stdout)
+        logging.info(send_command.stderr)
 
     if len(send_command.stderr) > 0:
         expired = "Trial already expired"
@@ -176,7 +177,7 @@ def local_api_show_license(verbose = False):
         
     license_info = _get_license_info(send_command)
     for ix, st in license_info.items():
-        print(f"{ix}: {st}")
+        logging.info(f"{ix}: {st}")
         
 def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verbose = False):
     cur_wd = os.getcwd()
@@ -215,7 +216,7 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
     
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            print(f'This function was not tested for platform {platform} and may not work properly')
+            logging.info(f'This function was not tested for platform {platform} and may not work properly')
 
         if cache_path is None:
             command = ['mvn', 'exec:java@calculate', '-Dexec.args=--model "' + model_path + '"  --out "' + out_path + '" --data "' + data_path + '"']
@@ -226,14 +227,14 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
     os.chdir(cur_wd)
 
     if verbose:
-        print(send_command.stdout)
-        print(send_command.stderr)
+        logging.info(send_command.stdout)
+        logging.info(send_command.stderr)
 
     if send_command.returncode != 0:
         raise ValueError("Calculation failed")
     else:
         model._import_results(out_path)
-        print("The calculation is completed, the dataset in the model now contains new calculation results")
+        logging.info("The calculation is completed, the dataset in the model now contains new calculation results")
     
 def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
@@ -268,7 +269,7 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            print(f'This function was not tested for platform {platform} and may not work properly')
+            logging.info(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@sensitivity', '-Dexec.args=--model "' + model_path + '"  --out "' + out_path + '" --config "' + config_path + '"']
         send_command = subprocess.run(command, capture_output=True, text=True)
@@ -276,8 +277,8 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
     os.chdir(cur_wd)
 
     if verbose:
-        print(send_command.stdout)
-        print(send_command.stderr)
+        logging.info(send_command.stdout)
+        logging.info(send_command.stderr)
 
     if len(send_command.stderr) > 0:
         raise ValueError("Sensitivity analysis failed")
