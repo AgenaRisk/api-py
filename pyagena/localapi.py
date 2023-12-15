@@ -46,7 +46,7 @@ def local_api_compile(verbose = False):
         send_command = subprocess.run('powershell -command "mvn clean compile -DskipTests"', capture_output=True, text=True)
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            logging.info(f'This function was not tested for platform {platform} and may not work properly')
+            logging.warning(f'This function was not tested for platform {platform} and may not work properly')
         send_command = subprocess.run(['mvn', 'clean', 'compile', '-DskipTests'], capture_output=True, text=True)
         
     os.chdir(cur_wd)
@@ -86,7 +86,7 @@ def local_api_activate_license(key, verbose = False):
 
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            logging.info(f'This function was not tested for platform {platform} and may not work properly')
+            logging.warning(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--keyActivate --key ' + key]
         send_command = subprocess.run(command, capture_output=True, text=True)
@@ -120,7 +120,7 @@ def local_api_deactivate_license(verbose = False):
 
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            logging.info(f'This function was not tested for platform {platform} and may not work properly')
+            logging.warning(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--keyDeactivate']
         send_command = subprocess.run(command, capture_output=True, text=True)
@@ -157,7 +157,7 @@ def local_api_show_license(verbose = False):
     
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            logging.info(f'This function was not tested for platform {platform} and may not work properly')
+            logging.warning(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--licenseSummary']
         send_command = subprocess.run(command, capture_output=True, text=True)
@@ -177,7 +177,7 @@ def local_api_show_license(verbose = False):
         
     license_info = _get_license_info(send_command)
     for ix, st in license_info.items():
-        logging.info(f"{ix}: {st}")
+        logging.print(f"{ix}: {st}")
         
 def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verbose = False):
     cur_wd = os.getcwd()
@@ -216,7 +216,7 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
     
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            logging.info(f'This function was not tested for platform {platform} and may not work properly')
+            logging.warning(f'This function was not tested for platform {platform} and may not work properly')
 
         if cache_path is None:
             command = ['mvn', 'exec:java@calculate', '-Dexec.args=--model "' + model_path + '"  --out "' + out_path + '" --data "' + data_path + '"']
@@ -269,7 +269,7 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
-            logging.info(f'This function was not tested for platform {platform} and may not work properly')
+            logging.warning(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@sensitivity', '-Dexec.args=--model "' + model_path + '"  --out "' + out_path + '" --config "' + config_path + '"']
         send_command = subprocess.run(command, capture_output=True, text=True)
