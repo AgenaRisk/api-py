@@ -177,7 +177,7 @@ def local_api_show_license(verbose = False):
         
     license_info = _get_license_info(send_command)
     for ix, st in license_info.items():
-        logging.print(f"{ix}: {st}")
+        print(f"{ix}: {st}")
         
 def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verbose = False):
     cur_wd = os.getcwd()
