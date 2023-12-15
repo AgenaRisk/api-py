@@ -231,10 +231,12 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
         logging.info(send_command.stderr)
 
     if send_command.returncode != 0:
+        tempdir.cleanup()
         raise ValueError("Calculation failed")
     else:
         model._import_results(out_path)
         logging.info("The calculation is completed, the dataset in the model now contains new calculation results")
+        tempdir.cleanup()
     
 def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
@@ -281,12 +283,14 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
         logging.info(send_command.stderr)
 
     if len(send_command.stderr) > 0:
+        tempdir.cleanup()
         raise ValueError("Sensitivity analysis failed")
     else:
         with open(out_path, "r") as file:
             results_string = file.read()
         sens_results = json.loads(results_string)
         sens_results = _results_to_dotdict(sens_results)
+        tempdir.cleanup()
         return(sens_results)
 
 
