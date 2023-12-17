@@ -147,7 +147,7 @@ def local_api_deactivate_license(verbose = False):
             old_key = send_command.stdout.split("Key released: ")[1].split("\n")[0]
             logging.info(f"Deactivation successful - license key {old_key} is released")
 
-def local_api_show_license(verbose = False):
+def local_api_get_license_summary(verbose = False):
     cur_wd = os.getcwd()
     os.chdir(os.path.join('.', 'api'))
 
@@ -175,9 +175,12 @@ def local_api_show_license(verbose = False):
         else:
             raise ValueError("Error when attempting to show license")
         
-    license_info = _get_license_info(send_command)
+    return _get_license_info(send_command)
+
+def local_api_show_license(verbose = False):
+    license_info = local_api_get_license_summary(verbose)
     for ix, st in license_info.items():
-        print(f"{ix}: {st}")
+            print(f"{ix}: {st}")
         
 def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verbose = False):
     cur_wd = os.getcwd()
