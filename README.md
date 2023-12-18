@@ -274,6 +274,20 @@ or
 example_model.create_dataset(example_case)
 ```
 
+Before going into the details of methods, a note on displaying success messages and logging info as you go on with the pyagena usage: If you'd like to see the success messages and logging info, you can set the following once at the beginning of the work:
+
+```python
+set_verbose(True)
+```
+
+This is for success messages and logging info. The warning and error messages are displayed by default.
+
+To also display timestamps of the messages:
+
+```python
+include_timestamps(True)
+```
+
 ## 4.1 `Model` methods
 
 A `Model` object consists of networks, network links, datasets, and settings. Once a new `Model` is created, it is possible to create `Network`s and `Dataset`s in it. By default, a new `Model` object comes with a single empty dataset (case) called "Case 1". Following methods can be used to modify `Model` objects: 
@@ -564,6 +578,8 @@ pyagena allows users to send their models to agena.ai Cloud servers for calculat
 ## 4.6 agena.ai Local API Related Functions
 
 pyagena allows users to connect to the local agena.ai developer API for calculation. The functions about the local developer API communication are descibed in [Section 9](#9-local-agenaai-api-with-pyagena).
+
+Local API related functions come with the parameter `verbose` (set to False by default). If you'd like to see detailed console output, you can call the functions explained in [Section 9](#9-local-agenaai-api-with-pyagena) with `verbose = True`. Note that, for this to work, you also need to have enabled global `set_verbose(True)` setting.
 
 # 5. Importing a Model from .cmpx
 
