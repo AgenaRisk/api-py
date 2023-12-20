@@ -5,3 +5,5 @@ pyagena.egg-info
 /dev
 __pycache__
 /api
+.local
+/tests/temp
