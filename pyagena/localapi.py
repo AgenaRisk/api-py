@@ -82,14 +82,14 @@ def local_api_activate_license(key, verbose = False):
 
     if platform == "win32":
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyActivate --key ' + key + '`\\"\\""'
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = _exec_shell_command(command, capture_output=True, text=True)
 
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
             logging.warning(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--keyActivate --key ' + key]
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = _exec_shell_command(command, capture_output=True, text=True)
 
     os.chdir(cur_wd)
 
@@ -116,14 +116,14 @@ def local_api_deactivate_license(verbose = False):
     
     if platform == "win32":    
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--keyDeactivate`\\"\\""'
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = _exec_shell_command(command, capture_output=True, text=True)
 
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
             logging.warning(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--keyDeactivate']
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = _exec_shell_command(command, capture_output=True, text=True)
 
     os.chdir(cur_wd)
 
@@ -153,14 +153,14 @@ def local_api_get_license_summary(verbose = False):
 
     if platform == "win32":
         command = 'powershell -command "mvn exec:java@activate \\"-Dexec.args=`\\"--licenseSummary`\\"\\""'
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = _exec_shell_command(command, capture_output=True, text=True)
     
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
             logging.warning(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@activate', '-Dexec.args=--licenseSummary']
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = _exec_shell_command(command, capture_output=True, text=True)
     
     os.chdir(cur_wd)
 
@@ -215,7 +215,7 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
             command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\'`\\"\\""'
         else:
             command = 'powershell -command "mvn exec:java@calculate \\"-Dexec.args=`\\"--directoryWorking \'' + cur_wd + '\' --model \'' + model_path + '\' --out \'' + out_path + '\' --data \'' + data_path + '\' --use-cache`\\"\\""'
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = _exec_shell_command(command, capture_output=True, text=True)
     
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
@@ -225,7 +225,7 @@ def local_api_calculate(model:Model, dataset_ids = None, cache_path = None, verb
             command = ['mvn', 'exec:java@calculate', '-Dexec.args=--model "' + model_path + '"  --out "' + out_path + '" --data "' + data_path + '"']
         else:
             command = ['mvn', 'exec:java@calculate', '-Dexec.args=--directoryWorking "' + cur_wd + '" --model "' + model_path + '"  --out "' + out_path + '" --data "' + data_path + '" --use-cache']
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = _exec_shell_command(command, capture_output=True, text=True)
 
     os.chdir(cur_wd)
 
@@ -270,14 +270,14 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
 
     if platform == "win32":
         command = 'powershell -command "mvn exec:java@sensitivity \\"-Dexec.args=`\\"--model \'' + model_path + '\' --out \'' + out_path + '\' --config \'' + config_path + '\'`\\"\\""'
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = _exec_shell_command(command, capture_output=True, text=True)
 
     else:
         if not (platform == "darwin" or platform == "linux" or platform == "linux2"):
             logging.warning(f'This function was not tested for platform {platform} and may not work properly')
 
         command = ['mvn', 'exec:java@sensitivity', '-Dexec.args=--model "' + model_path + '"  --out "' + out_path + '" --config "' + config_path + '"']
-        send_command = subprocess.run(command, capture_output=True, text=True)
+        send_command = _exec_shell_command(command, capture_output=True, text=True)
 
     os.chdir(cur_wd)
 
@@ -296,4 +296,9 @@ def local_api_sensitivity_analysis(model:Model, sens_config, verbose = False):
         tempdir.cleanup()
         return(sens_results)
 
-
+def _exec_shell_command(*args, **kwargs):
+    send_command = subprocess.run(*args, **kwargs)
+    error_marker="Only Enterprise version can run in a headless environment"
+    if error_marker in send_command.stdout or error_marker in send_command.stderr:
+        raise RuntimeError(error_marker)
+    return send_command
