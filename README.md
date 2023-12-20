@@ -89,7 +89,7 @@ To see how to create these links, see `add_network_link()` function later in thi
 * iterations (50)
 * tolerance (1)
 
-Model settings can be provided when creating a new model, if not provided the model will come with the default settings. Default settings can be changed later on (with the method `change_settings()`), or model settings can be reset back to default values (with the method `default_settings()`). See the correct input parameter format for these functions in the following section. Individual fields in model setting can be adjusted with `change_settings()` too.
+Model settings can be provided when creating a new model, if not provided the model will come with the default settings. Default settings can be changed later on (with the method `change_settings()`), or model settings can be reset back to default values (with the method `default_settings()`). See the correct input parameter format for these functions in the following section. Individual fields in model setting can be adjusted with `change_settings()` too. Individual setting value can be accessed with `syntax model.settings['convergence']`.
 
 ## 3.2 `Network` objects 
 
