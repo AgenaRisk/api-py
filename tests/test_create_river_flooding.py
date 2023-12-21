@@ -205,8 +205,6 @@ class TestCreateRiverFlooding(unittest.TestCase):
         ds.enter_observation(net_3.id, nodeRain_3.id, 'None')
         ds.enter_observation(net_3.id, nodeFloodDefences_3.id, 'Poor')
 
-        model.save_to_file('/x/river_flooding.cmpx')
-
         pyagena.local_api_calculate(model, [ds.id], verbose=True)
         result = ds.get_result(net_3.id, nodeFlood_3.id, 'Yes')
         self.assertAlmostEqual(result, 0.27927, delta=0.01)
