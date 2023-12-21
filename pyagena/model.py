@@ -331,7 +331,7 @@ class Model():
                     for idx, cl in enumerate(data.columns):
                          this_net = cl.split(".")[0]
                          this_node = cl.split(".")[1]
-                         if not pd.isna(row[idx]):     self.enter_observation(network_id=this_net, node_id=this_node, dataset_id=ds_id, value=row[idx])
+                         if not pd.isna(row.iloc[idx]):     self.enter_observation(network_id=this_net, node_id=this_node, dataset_id=ds_id, value=row.iloc[idx])
                     
     
           elif os.path.splitext(filename)[1] == ".json":
