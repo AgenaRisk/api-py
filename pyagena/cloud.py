@@ -26,17 +26,18 @@ class login():
         login_body = {"client_id":"agenarisk-cloud",
                 "username":self.username,
                 "password":self.password,
-                "grant_type":"password"}       
+                "grant_type":"password"}
 
         login_response = re.post(login_url, headers=login_header, data=login_body)
+        jlogin_response = _parse_json(login_response)
 
         if login_response.status_code == 200:
             logging.info("Authentication to agena.ai cloud servers is successful")
-            self.access_token = login_response.json()["access_token"]
-            self.refresh_token = login_response.json()["refresh_token"]
+            self.access_token = jlogin_response["access_token"]
+            self.refresh_token = jlogin_response["refresh_token"]
             self.login_time = int(time.time())
-            access_duration = login_response.json()["expires_in"]
-            refresh_duration = login_response.json()["refresh_expires_in"]
+            access_duration = jlogin_response["expires_in"]
+            refresh_duration = jlogin_response["refresh_expires_in"]
             self.access_expire = self.login_time + access_duration
             self.refresh_expire = self.login_time + refresh_duration
             self.debug = False
@@ -77,7 +78,7 @@ class login():
     
         ref_response = re.post(ref_url, headers=ref_header, data=ref_body)
         if ref_response.status_code == 200:
-            self.access_token = ref_response.json()["access_token"]   
+            self.access_token = _parse_json(ref_response)["access_token"]   
 
     def calculate(self, model:Model, dataset_id=None):
         now = int(time.time())
@@ -101,26 +102,28 @@ class login():
 
         calculate_response = re.post(calculate_url, headers={"Authorization":f"Bearer {self.access_token}"},json=calculate_body)
 
+        jcalculate_response = _parse_json(calculate_response)
+
         if calculate_response.status_code == 200:
-            logging.info(calculate_response.json()["messages"])
+            logging.info(jcalculate_response["messages"])
             if self.debug:
-                for db in calculate_response.json()["debug"]:
+                for db in jcalculate_response["debug"]:
                     logging.info(db)
             
-            if calculate_response.json()["status"]=="success":
+            if jcalculate_response["status"]=="success":
                 if dataset_id is None:
-                    model.datasets[0].results = calculate_response.json()["results"]
+                    model.datasets[0].results = jcalculate_response["results"]
                     model.dataset[0]._convert_to_dotdict()
                 else:
                     for ds in model.datasets:
                         if ds.id == dataset_id:
-                            ds.results = calculate_response.json()["results"]
+                            ds.results = jcalculate_response["results"]
                             ds._convert_to_dotdict()
         elif calculate_response.status_code == 202:           
-            logging.info(calculate_response.json()["messages"])
+            logging.info(jcalculate_response["messages"])
             logging.info("Polling has started, polling for calculation results will update every 3 seconds")
             
-            polling_url = calculate_response.json()["pollingUrl"]
+            polling_url = jcalculate_response["pollingUrl"]
             poll_status = 202
 
             while poll_status == 202:
@@ -135,33 +138,35 @@ class login():
                 poll_status = polled_response.status_code
                 time.sleep(3)
 
+            jpolled_response = _parse_json(polled_response)
+
             if polled_response.status_code == 200:
-                logging.info(polled_response.json()["messages"])
+                logging.info(jpolled_response["messages"])
                 if self.debug:
-                    for db in polled_response.json()["debug"]:
+                    for db in jpolled_response["debug"]:
                         logging.info(db)
 
-                if polled_response.json()["status"]=="success":
+                if jpolled_response["status"]=="success":
                     if dataset_id is None:
-                        model.datasets[0].results = polled_response.json()["results"]
+                        model.datasets[0].results = jpolled_response["results"]
                         model.datasets[0]._convert_to_dotdict()
                     else:
                         for ds in model.datasets:
                             if ds.id == dataset_id:
-                                ds.results = polled_response.json()["results"]
+                                ds.results = jpolled_response["results"]
                                 ds._convert_to_dotdict()
                 
             else:
                 if self.debug:
-                    for db in polled_response.json()["debug"]:
+                    for db in jpolled_response["debug"]:
                         logging.info(db)
-                raise ValueError(polled_response.json()["messages"]) 
+                raise ValueError(jpolled_response["messages"]) 
         
         else:
             if self.debug:
-                for db in calculate_response.json()["debug"]:
+                for db in jcalculate_response["debug"]:
                     logging.info(db)
-            raise ValueError(calculate_response.json()["messages"])
+            raise ValueError(jcalculate_response["messages"])
         
     def sensitivity_analysis(self, model:Model, sens_config):
 
@@ -190,25 +195,26 @@ class login():
             self.refresh_auth()
 
         sa_response = re.post(sa_url, headers={"Authorization":f"Bearer {self.access_token}"},json=sa_body)
+        jsa_response = _parse_json(sa_response)
 
         if sa_response.status_code == 200:
-            logging.info(sa_response.json()["messages"])
+            logging.info(jsa_response["messages"])
             if self.debug:
-                for db in sa_response.json()["debug"]:
+                for db in jsa_response["debug"]:
                     logging.info(db)
             
-            if sa_response.json()["status"]=="success":
+            if jsa_response["status"]=="success":
                 sa_results = {}
                 fields = ["lastUpdated", "version", "log", "uuid", "debug", "duration", "messages", "results", "memory"]
                 for f in fields:
-                    sa_results[f] = sa_response.json()[f]
+                    sa_results[f] = jsa_response[f]
                 sa_results = _results_to_dotdict(sa_results)
         
         elif sa_response.status_code == 202:
-            logging.info(sa_response.json()["messages"])
+            logging.info(jsa_response["messages"])
             logging.info("Polling has started, polling for calculation results will update every 3 seconds")
             
-            polling_url = sa_response.json()["pollingUrl"]
+            polling_url = jsa_response["pollingUrl"]
             poll_status = 202
 
             while poll_status == 202:
@@ -223,31 +229,41 @@ class login():
                 poll_status = polled_response.status_code
                 time.sleep(3)
 
+            jpolled_response = _parse_json(polled_response)
             if polled_response.status_code == 200:
-                logging.info(polled_response.json()["messages"])
+                logging.info(jpolled_response["messages"])
                 if self.debug:
-                    for db in polled_response.json()["debug"]:
+                    for db in jpolled_response["debug"]:
                         logging.info(db)
 
-                if polled_response.json()["status"]=="success":
+                if jpolled_response["status"]=="success":
                     sa_results = {}
                     fields = ["lastUpdated", "version", "log", "uuid", "debug", "duration", "messages", "results", "memory"]
                     for f in fields:
-                        sa_results[f] = polled_response.json()[f]
+                        sa_results[f] = jpolled_response[f]
                     sa_results = _results_to_dotdict(sa_results)
                 
             else:
                 if self.debug:
-                    for db in polled_response.json()["debug"]:
+                    for db in jpolled_response["debug"]:
                         logging.info(db)
-                raise ValueError(polled_response.json()["messages"])
+                raise ValueError(jpolled_response["messages"])
                 
         else:
             if self.debug:
-                for db in sa_response.json()["debug"]:
+                for db in jsa_response["debug"]:
                     logging.info(db)
-            raise ValueError(sa_response.json()["messages"])
+            raise ValueError(jsa_response["messages"])
         
         return sa_results
     
-
+def _parse_json(response):
+    try:
+        jResponse = response.json()
+    except:
+        if str(response.text) == '':
+            err = 'Server response is empty'
+        else:
+            err = 'Server response not a valid JSON: ' + response.text
+        raise RuntimeError(err)
+    return jResponse
