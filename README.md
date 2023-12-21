@@ -17,28 +17,11 @@ pyagena is a python environment for creating, modifying, and parsing Bayesian ne
 
 # 2. Prerequisites and Installation
 
-FOR NOW:
-
-To use pyagena, clone the repository and open a terminal in the directory to locally install the package using pip
+You can install pyagena using pip:
 
 ```bash
-pip install .
+pip install pyagena
 ```
-Here `.` installs all the packages in the directory.
-
-To use pyagena, create a new python script (or a jupyter notebook file) and import the package
-
-```python
-import pyagena
-```
-
-or
-
-```python
-from pyagena import *
-```
-
-[ONLY FOR NOW, FOR TESTING PURPOSES - WHEN WE'RE DONE IT WILL BE UPLOADED TO PIP SO USERS CAN INSTALL THE PACKAGE WITHOUT CLONING THE REPO]
 
 pyagena requires the following python packages to be installed: `requests`, `pandas`, `networkx`, and `matplotlib`
 
@@ -51,7 +34,17 @@ pip install matplotlib
 pip install networkx
 ```
 
-System packages used in pyagena: `sys`, `os`, `tempfile`, `json`, `getpass`, `time`, and `subprocess` (just for your information, not needed to install explicitly)
+Once installed, you can import the package in the python script (or a jupyter notebook file) to use. For example:
+
+```python
+import pyagena as ag
+```
+
+or
+
+```python
+from pyagena import *
+```
 
 # 3. Structure of pyagena Classes
 
