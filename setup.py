@@ -9,6 +9,7 @@ setuptools.setup(
     long_description=open("README.md", "r").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/AgenaRisk/api-py",
+    download_url="https://github.com/AgenaRisk/api-py/archive/refs/tags/1.0.0.tar.gz",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
