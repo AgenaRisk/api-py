@@ -168,13 +168,6 @@ def local_api_get_license_summary(verbose = False):
         logging.info(send_command.stdout)
         logging.info(send_command.stderr)
 
-    if len(send_command.stderr) > 0:
-        expired = "Trial already expired"
-        if expired in send_command.stderr:
-            raise ValueError(expired)
-        else:
-            raise ValueError("Error when attempting to show license")
-        
     return _get_license_info(send_command)
 
 def local_api_show_license(verbose = False):
