@@ -2,14 +2,14 @@ import setuptools
 
 setuptools.setup(
     name="pyagena",
-    version="1.0.0",
+    version="1.0.1",
     author="Erhan Pisirir, Eugene Dementiev",
     author_email="support@agenarisk.com",
     description="Python wrapper for agena.ai to create Bayesian network models from scratch or import existing models and export to agena.ai cloud or local API for calculations.",
     long_description=open("README.md", "r").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/AgenaRisk/api-py",
-    download_url="https://github.com/AgenaRisk/api-py/archive/refs/tags/1.0.0.tar.gz",
+    download_url="https://github.com/AgenaRisk/api-py/archive/refs/tags/1.0.1.tar.gz",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
