@@ -60,13 +60,15 @@ def local_api_compile(verbose = False):
 
 
 def local_api_init(verbose = False):
-
-    if os.path.isdir("./api"):
+    api_path=os.path.join('.', 'api')
+    if os.path.isdir(api_path):
         def rm_dir_readonly(func, path, _):
+            if platform == 'darwin':
+                os.system('chflags nouchg {}'.format(path))
             os.chmod(path, stat.S_IWRITE)
             func(path)
 
-        shutil.rmtree("./api/", onerror=rm_dir_readonly)
+        shutil.rmtree(api_path, onerror=rm_dir_readonly)
 
     local_api_clone()
     local_api_compile(verbose = verbose)
