@@ -17,7 +17,7 @@ pyagena is a python environment for creating, modifying, and parsing Bayesian ne
 
 # 2. Prerequisites and Installation
 
-You can install pyagena using pip:
+You can install pyagena using [pip](https://pypi.org/project/pip/):
 
 ```bash
 pip install pyagena
@@ -25,7 +25,7 @@ pip install pyagena
 
 pyagena requires the following python packages to be installed: `requests`, `pandas`, `networkx`, and `matplotlib`
 
-To install the dependencies, you can use [pip](https://pypi.org/project/pip/) with the commands:
+In case these were not installed automatically, you can install them with the commands:
 
 ```bash
 pip install requests
