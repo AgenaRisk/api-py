@@ -221,7 +221,7 @@ ContinuousInterval
 Ranked
 * TNormal
 
-For further information on expressions, please refer to [agena.ai modeller manual, Sections 22 (Statistical distributions) and 23 (Expressions)](https://resources.agena.ai/materials/AgenaRisk%2010%20Desktop%20User%20Manual.pdf).
+For further information on expressions, please refer to [agena.ai modeller manual, Sections 22 (Statistical distributions) and 23 (Expressions)](https://resources.agena.ai/materials/agena.ai%20modeller%20user%20manual.pdf).
 
 ### 3.3.11 `partitions`
 
