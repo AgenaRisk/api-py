@@ -1151,9 +1151,23 @@ The sensitivity analysis computation supports asynchronous request (polling) if 
 
 Agena.ai has a [Java based API](https://github.com/AgenaRisk/api) to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller or cloud. The local API has Java and maven dependencies, which you can see on its github page in full detail. pyagena allows communications with the local agena developer API.
 
-Local API functions, except for `local_api_clone`, come with the optional parameter `verbose`, which is by default set to False. If you choose to display full maven output as a result of the functions, you can set `verbose = True` in the function calls.
+Local API functions, except for `local_api_clone`, come with the optional parameter `verbose`, which is by default set to False. If you choose to display full maven output as a result of the functions, you can set `verbose = True` in the function calls. You also need to enable verbose logging for the library e.g.:
 
-## 8.1 Setting up the local API directory
+```python
+from pyagena import *
+set_verbose(verbose=True)
+local_api_compile(verbose=True)
+```
+
+## 8.1 Prerequisites
+
+For the local API functions to work, the following tools must be available console or terminal:
+
+- git
+- Java JDK LTS release (such as 8, 11, 17)
+- Maven version 3.6.3 or newer
+
+## 8.2 Setting up the local API directory
 
 To manually set up the local agena developer API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api.
 
@@ -1195,7 +1209,7 @@ local_api_show_license()
 
 **!! Note that when there is a new version of the agena developer API, you need to re-run `local_api_compile()` function to update the local repository. Remember that this is done in the working directory which contains the /api/ folder, not in the /api/ folder !!**
 
-## 8.2 Model calculation with the local API
+## 8.3 Model calculation with the local API
 
 Once the local API is compiled and developer license is activated, you can use the local API directly with your models defined in python. To use the local API for calculations of a model created in python:
 
