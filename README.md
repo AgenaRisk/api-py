@@ -527,11 +527,11 @@ A method to set the table type (`distr_type`) of a node. If a `Node` is `simulat
 
 Changing the node's distribution type (table type) adjusts its `states`/`probabilities`/`expressions`` parameters accordingly.
 
-### 4.3.5 `set_probabilities(new_probs, by_rows = False)`
+### 4.3.5 `set_probabilities(new_probs, by_row = False)`
 
 The method to set the probability values if the table type (`distr_type`) of a `Node` is "Manual". `new_probs` is a list of lists containing numerical values, and the length of the input list depends on the number of the states of the node and of its parents.
 
-You can format the input list in two different orders. If the parameter `by_rows` is set to `True`, the method will read the input list to fill in the NPT row by row; if set to `False` (it is `False` by default), the method will read the input list to fill in the NPT column by columnn. This behaviour is illustrated with use case examples later in this document.
+You can format the input list in two different orders. If the parameter `by_row` is set to `True`, the method will read the input list to fill in the NPT row by row; if set to `False` (it is `False` by default), the method will read the input list to fill in the NPT column by columnn. This behaviour is illustrated with use case examples later in this document.
 
 ### 4.3.6 `set_expressions(new_expr, partition_parents = optional)`
 The method to set the probability values if the table type (`distr_type`) of a `Node` is "Expression" or "Partitioned". If the table type is "Expression", `new_expr` is a list of size one and `partition_parents` is left untouched. If the table type is "Partitioned", `new_expr` is a list of expressions for each parent state, and `partition_parents` is a list of strings for each partitioned parent node's `id`. See the following sections for examples.
@@ -812,16 +812,16 @@ Assume that `node_one` and `node_two` are the parents of `node_three` (how to ad
 </tbody>
 </table>
 
-There are two ways to order the values in this table for the `set_probabilities()` method, using the boolean `by_rows` parameter (which is set to `False` by default). If you want to enter the values following the rows in agena.ai Modeller NPT rather than ordering them by the combination of parent states (columns), you can use `by_rows = True` where each element of the list is a row of the agena.ai Modeller NPT:
+There are two ways to order the values in this table for the `set_probabilities()` method, using the boolean `by_row` parameter (which is set to `False` by default). If you want to enter the values following the rows in agena.ai Modeller NPT rather than ordering them by the combination of parent states (columns), you can use `by_row = True` where each element of the list is a row of the agena.ai Modeller NPT:
 
 ```python
-net.set_node_probabilities("node_three", probabilities = [[0.1, 0.2, 0.3, 0.4], [0.4, 0.45, 0.6, 0.55], [0.5, 0.35, 0.1, 0.05]], by_rows = True)
+net.set_node_probabilities("node_three", probabilities = [[0.1, 0.2, 0.3, 0.4], [0.4, 0.45, 0.6, 0.55], [0.5, 0.35, 0.1, 0.05]], by_row = True)
 ```
 
-If, instead, you want to define the NPT with the probabilities that add up to 1 (conditioned on the each possible combination of parent states), you can set `by_rows = False` as the following example:
+If, instead, you want to define the NPT with the probabilities that add up to 1 (conditioned on the each possible combination of parent states), you can set `by_row = False` as the following example:
 
 ```python
-net.set_node_probabilities("node_three", probabilities = [[0.1, 0.4, 0.5], [0.2, 0.45, 0.35], [0.3, 0.6, 0.1], [0.4, 0.55, 0.05]], by_rows = False)
+net.set_node_probabilities("node_three", probabilities = [[0.1, 0.4, 0.5], [0.2, 0.45, 0.35], [0.3, 0.6, 0.1], [0.4, 0.55, 0.05]], by_row = False)
 ```
 
 Similarly, you can use the node method `set_expressions()` or the network method `set_node_expressions()` to define and update expressions for the nodes without Manual NPT tables. If the node has no parents, you can add a single expression:
