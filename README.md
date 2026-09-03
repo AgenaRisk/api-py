@@ -1149,43 +1149,61 @@ The sensitivity analysis computation supports asynchronous request (polling) if 
 
 # 8. Local agena.ai API with pyagena
 
-Agena.ai has a [Java based API](https://github.com/AgenaRisk/api) to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller or cloud. The local API has Java and maven dependencies, which you can see on its github page in full detail. pyagena allows communications with the local agena developer API.
+Agena.ai has a Java based API to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller or cloud. pyagena downloads and manages the API for you.
 
-Local API functions, except for `local_api_clone`, come with the optional parameter `verbose`, which is by default set to False. If you choose to display full maven output as a result of the functions, you can set `verbose = True` in the function calls. You also need to enable verbose logging for the library e.g.:
+Local API functions come with the optional parameter `verbose`, which is by default set to False. Setting `verbose = True` logs the exact command sent to the engine along with its output. You also need to enable verbose logging for the library e.g.:
 
 ```python
 from pyagena import *
 set_verbose(verbose=True)
-local_api_compile(verbose=True)
+local_api_calculate(model, verbose=True)
 ```
 
 ## 8.1 Prerequisites
 
-For the local API functions to work, the following tools must be available console or terminal:
+None. Earlier versions of pyagena cloned the API's source and built it, which required git, a Java JDK and Maven on your PATH. The API is now published as a pre-built bundle, and pyagena downloads it along with a Java runtime of the right version — so nothing needs to be installed beforehand, and nothing on your PATH can conflict with it.
 
-- git
-- Java JDK LTS release (such as 8, 11, 17)
-- Maven version 3.6.3 or newer
-
-## 8.2 Setting up the local API directory
-
-To manually set up the local agena developer API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api.
-
-Or, for the API setup you can use the python environment:
+## 8.2 Installing the local API
 
 ```python
-local_api_clone()
+local_api_install()
 ```
 
-to clone the git repository of the API in your working directory.
+This downloads three things into `~/.agena.ai/tools`, which is shared with agena.ai Explorer and any other local client on the machine, so anything already present is reused:
 
-Once the API is cloned, you can compile maven environment with:
+- the agena.ai API runtime bundle,
+- a Java runtime,
+- the licensing components.
+
+You do not choose the Java version. The API bundle is fetched first, and the Java runtime it declares in its manifest (`Require-Java`) is the one downloaded and used to run it — so the engine always runs on the runtime it was built and tested against, and a change of Java version travels with the API rather than needing a matching client release. A jar that declares nothing gets Java 21.
+
+If no runtime is published for your platform, a Java already installed on the machine is used instead, provided it is new enough to load the jar — its version is checked, not assumed. Failing that you are told which Java to install.
+
+Nothing is written to your working directory.
+
+It is safe to leave at the top of a script. When everything is already installed it makes no network request and returns immediately, and it will **not** upgrade you to a newer version just because one exists — so a script that ran last month runs against the same engine today. To check for and install a newer version, ask for it:
 
 ```python
-local_api_compile()
+local_api_install(update=True)
 ```
 
-Note that for this to work you need to stay in your current working directory, you don't need to navigate into the cloned api folder. The python function will compile the api directory as long as it's a sub-directory of the current working directory (default behaviour if `local_api_clone()` is used to clone the repository.)
+To install an unreleased build instead of the latest release:
+
+```python
+local_api_install(channel="snapshot")
+```
+
+Naming a channel your installed version did not come from is itself a request to switch, so this moves you onto the development builds and `local_api_install()` keeps you there afterwards.
+
+To install one exact version, older ones included:
+
+```python
+local_api_install(version="1.043-SNAPSHOT")
+```
+
+A pinned version is installed as given rather than checked against the channel's newest, which is what makes it useful for reproducing an earlier run or bisecting a regression. `force=True` reinstalls regardless.
+
+`local_api_clone()`, `local_api_compile()` and `local_api_init()` still work but are deprecated: they now install the bundle and warn, and will be removed in a future release.
 
 And if needed, activate your agena.ai developer license with
 
@@ -1207,11 +1225,9 @@ And if you would like to see the license information:
 local_api_show_license()
 ```
 
-**!! Note that when there is a new version of the agena developer API, you need to re-run `local_api_compile()` function to update the local repository. Remember that this is done in the working directory which contains the /api/ folder, not in the /api/ folder !!**
-
 ## 8.3 Model calculation with the local API
 
-Once the local API is compiled and developer license is activated, you can use the local API directly with your models defined in python. To use the local API for calculations of a model created in python:
+Once the local API is installed and the developer license is activated, you can use the local API directly with your models defined in python. To use the local API for calculations of a model created in python:
 
 ```python
 local_api_calculate(model, dataset_ids=optional, cache_path=optional)
@@ -1226,7 +1242,7 @@ local_api_calculate(model = example_model,
                     dataset_ids = ["example_dataset_id"])
 ```
 
-This function will temporarily create the .cmpx file for the model and the separate .json file required for the dataset, and send them to the local API (cloned and compiled within the working directory), obtain the calculation result values and update the python Model object with the calculation results.
+This function will temporarily create the .cmpx file for the model and the separate .json file required for the dataset, and send them to the local API, obtain the calculation result values and update the python Model object with the calculation results.
 
 To calculate multiple datasets in the same model:
 
@@ -1279,7 +1295,7 @@ sa_results = local_api_sensitivity_analysis(model = example_model,
                       sens_config = example_sens_config)
 ```
 
-This function will temporarily create the .cmpx file for the model and the separate .json files required for the dataset and sensitivity analysis configuration file, and send them to the local API (cloned and compiled within the working directory), obtain the sensitivity analysis result values and create the results `dict`. The returned `dict` includes the result values for displays such as sensitivity tables, tornado graphs, and curves. `local_api_sensitivity_analysis()` looks at the `dataSet` field of `sens_config` to determine which dataset to use, if the field doesn't exist, the default behaviour is to create a new dataset without any observations for the sensitivity analysis.
+This function will temporarily create the .cmpx file for the model and the separate .json files required for the dataset and sensitivity analysis configuration file, and send them to the local API, obtain the sensitivity analysis result values and create the results `dict`. The returned `dict` includes the result values for displays such as sensitivity tables, tornado graphs, and curves. `local_api_sensitivity_analysis()` looks at the `dataSet` field of `sens_config` to determine which dataset to use, if the field doesn't exist, the default behaviour is to create a new dataset without any observations for the sensitivity analysis.
 
 # 9 Importing and Exporting Datasets for Batch Calculation
 

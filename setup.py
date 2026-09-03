@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="pyagena",
-    version="1.0.4",
+    version="1.1.0",
     author="Erhan Pisirir, Eugene Dementiev",
     author_email="support@agenarisk.com",
     description="Python utility library for agena.ai to create Bayesian network models from scratch or import existing models and export to agena.ai cloud or local API for calculations.",
