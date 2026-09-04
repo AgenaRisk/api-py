@@ -55,24 +55,61 @@ def _run(args, working_directory=None, verbose=False):
     return completed
 
 
-def _license_info(completed):
+def _output(completed):
     """
-    Parse a licence summary.
+    Everything the engine printed, both streams.
 
-    ``activate --licenseSummary --json`` prints the summary as a single JSON object on
-    its own line. The previous version had to split the Maven log on braces and hope the
-    first ``{`` it found belonged to the summary rather than to anything else the build
-    had printed; the last JSON object on stdout is taken here, which is the summary
-    whatever precedes it.
+    From engine 2.0.1, `--json` keeps stdout to a single line of JSON and moves the
+    banner and the operation's own prose to stderr. Anything looking for a phrase has to
+    read both, or it will silently stop matching against a newer engine while continuing
+    to work against an older one.
     """
-    candidates = []
-    for line in (completed.stdout or "").splitlines():
+    return (completed.stdout or "") + (completed.stderr or "")
+
+
+def _result(completed):
+    """
+    The JSON result line a ``--json`` licensing operation prints, or None.
+
+    From engine 2.0.1 every licensing operation ends by printing one line: the licence
+    summary, plus ``operation`` and — when the engine had something to say — ``messages``.
+    Earlier engines print such a line only for ``--licenseSummary``, which is why callers
+    here treat its absence as "ask separately" rather than as a failure: a published
+    client has to keep working against the 2.0.0 that may already be installed.
+
+    The last parseable line wins. Core also prints an indented summary of its own, but
+    that spans several lines and so never matches — which is precisely the bug this
+    replaced, where a successful activation was read as "no summary returned".
+    """
+    for line in reversed((completed.stdout or "").splitlines()):
         line = line.strip()
-        if line.startswith("{") and line.endswith("}"):
-            candidates.append(line)
-    if not candidates:
-        raise ValueError("The engine did not return a license summary")
-    return json.loads(candidates[-1])
+        if not (line.startswith("{") and line.endswith("}")):
+            continue
+        try:
+            parsed = json.loads(line)
+        except ValueError:
+            continue
+        # Keep looking unless it is actually a JSON object. A line can parse and still be
+        # the wrong shape - `{}` from a failed summary, or a stray fragment - and handing
+        # a list or a string back to a caller expecting `.get()` turns a recoverable miss
+        # into an AttributeError three frames away.
+        if isinstance(parsed, dict) and parsed:
+            return parsed
+    return None
+
+
+def _license_info(completed):
+    """As :func:`_result`, but for callers that require a summary."""
+    result = _result(completed)
+    if result is None:
+        # Quote what did arrive: with no JSON on stdout the interesting part is whatever
+        # the engine said instead, and it is usually on stderr.
+        detail = (_output(completed) or "").strip().splitlines()
+        raise ValueError(
+            "The engine did not return a license summary"
+            + (": " + detail[-1] if detail else "")
+        )
+    return result
 
 
 # --------------------------------------------------------------------------------------
@@ -117,37 +154,46 @@ def local_api_init(verbose=False):
 
 
 def local_api_activate_license(key, verbose=False):
-    completed = _run(["activate", "--keyActivate", "--key", key], verbose=verbose)
+    completed = _run(["activate", "--keyActivate", "--key", key, "--json"], verbose=verbose)
 
     already = "Product already activated"
-    invalid = "Invalid license key"
-    if already in completed.stdout:
+    if already in _output(completed):
         logging.info(already)
         return
-    if invalid in completed.stdout:
-        raise ValueError(invalid)
 
-    if _license_info(completed).get("Mode") == "FreeTrial":
-        raise ValueError("Licence key activation failed")
+    # The engine's own account of what happened, when it gives one. Older engines do not,
+    # so the state is checked separately below either way.
+    result = _result(completed)
+    messages = (result or {}).get("messages") or []
+    for message in messages:
+        logging.info(message)
+
+    summary = result if result is not None else local_api_get_license_summary(verbose)
+    if summary.get("Mode") == "FreeTrial" or completed.returncode != 0:
+        raise ValueError(
+            "Licence key activation failed" + (": " + "; ".join(messages) if messages else "")
+        )
     logging.info("License key activated successfully")
 
 
 def local_api_deactivate_license(verbose=False):
-    completed = _run(["activate", "--keyDeactivate"], verbose=verbose)
+    completed = _run(["activate", "--keyDeactivate", "--json"], verbose=verbose)
 
     notyet = "Product not yet activated"
     limit_reached = "The license has reached it's allowed deactivations limit"
 
-    if limit_reached in completed.stderr:
+    output = _output(completed)
+    if limit_reached in output:
         raise ValueError(limit_reached)
-    if notyet in completed.stdout:
+    if notyet in output:
         logging.info(notyet)
         return
     if completed.returncode != 0:
         raise ValueError("Deactivation failed")
 
-    old_key = completed.stdout.split("Key released: ")[1].split("\n")[0]
-    logging.info("Deactivation successful - license key %s is released", old_key)
+    for message in (_result(completed) or {}).get("messages") or []:
+        logging.info(message)
+    logging.info("Deactivation successful - the license key is released")
 
 
 def local_api_get_license_summary(verbose=False):
