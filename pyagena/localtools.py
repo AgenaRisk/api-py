@@ -160,7 +160,18 @@ def resolve_version(channel="release"):
     still names a version from years ago — while ``<versions>`` is maintained. Maven's
     own tooling distrusts ``<latest>`` for the same reason.
     """
-    xml = _get_text(_repo_base(channel) + "/maven-metadata.xml")
+    try:
+        xml = _get_text(_repo_base(channel) + "/maven-metadata.xml")
+    except requests.HTTPError as error:
+        if error.response is not None and error.response.status_code == 404:
+            raise ValueError(
+                "Nothing of {} is published on the {} channel yet.{}".format(
+                    ARTIFACT_ID,
+                    channel,
+                    " Pass channel='snapshot' for unreleased builds." if channel == "release" else "",
+                )
+            ) from error
+        raise
     versions = re.findall(r"<version>([^<]+)</version>", xml)
     if not versions:
         raise ValueError("No versions published on the {} channel".format(channel))
@@ -596,22 +607,28 @@ def install_api(channel=None, version=None, update=False, force=False):
     engines, which is exactly what a reproducible analysis must not do. An upgrade is
     therefore something you ask for, never something that happens to you.
 
+    Releases only, unless snapshots are asked for: ``channel="snapshot"``, or ``version``
+    pinning a snapshot version. Without either, the channel is ``"release"`` whatever is
+    installed, so a snapshot is never picked up by accident.
+
     A change is being asked for when ``update`` is set (resolve the channel's newest and
     install it if it is newer), when ``version`` names something other than what is
-    installed, when ``channel`` names the channel the installed version did not come
-    from, or when ``force`` is set.
+    installed, when the channel differs from the one the installed version came from
+    (so with a snapshot installed, a call without ``channel="snapshot"`` moves to the
+    newest release), or when ``force`` is set.
 
     Installs are version-stamped — ``<tools>/core/<version>/`` with a ``current``
     pointer — so a snapshot can sit beside a release and rolling back is a matter of
     moving the pointer.
     """
     installed = installed_version()
+    channel = channel or (channel_of(version) if version else "release")
 
     if installed is not None and not force:
         asked = (
             update
             or (version is not None and version != installed)
-            or (channel is not None and channel_of(installed) != channel)
+            or channel_of(installed) != channel
         )
         if not asked:
             logging.info(
@@ -620,9 +637,6 @@ def install_api(channel=None, version=None, update=False, force=False):
             )
             return installed
 
-    # Stay on the channel the current install came from unless told otherwise, so an
-    # `update=True` in a developer's script does not quietly move them back to releases.
-    channel = channel or (channel_of(installed) if installed else "release")
     base = _repo_base(channel)
     if version is None:
         version = resolve_version(channel)
@@ -695,18 +709,19 @@ def local_api_install(channel=None, version=None, update=False, force=False):
     Make sure everything needed to run the engine locally is present: a JRE, the
     licensing payload and the API runtime bundle.
 
-    Safe to call at the top of a script. Anything already installed is left exactly as
-    it is, no network request is made, and it returns quickly — so a script that starts
-    with this line works on a fresh machine and stays on one engine version thereafter.
-    Upgrading is opt-in: pass ``update=True``.
+    Safe to call at the top of a script. Anything already installed on the channel asked
+    for is left exactly as it is, no network request is made, and it returns quickly —
+    so a script that starts with this line works on a fresh machine and stays on one
+    engine version thereafter. Upgrading is opt-in: pass ``update=True``. The channel is
+    ``"release"`` unless ``channel="snapshot"`` is passed.
 
     Replaces ``local_api_clone()`` and ``local_api_compile()``. There is no git, Maven
     or JDK involved, nothing is written to the working directory, and the result is
     shared with any other agena.ai client on the machine.
 
-    :param channel: ``"release"`` or ``"snapshot"`` for unreleased builds. Defaults to
-        the channel the installed version came from, or ``"release"`` on a fresh machine.
-        Naming the other channel is itself a request to switch to it.
+    :param channel: ``"release"`` (the default) or ``"snapshot"`` for unreleased builds.
+        Snapshots are used only when asked for here or by pinning a snapshot ``version``;
+        with a snapshot installed, a call without it moves to the newest release.
     :param version: pin an exact version instead of resolving the newest.
     :param update: check the channel for a newer version and install it if there is one.
     :param force: reinstall even if the components are already present.
