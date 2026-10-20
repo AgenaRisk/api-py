@@ -1198,7 +1198,7 @@ Naming a channel your installed version did not come from is itself a request to
 To install one exact version, older ones included:
 
 ```python
-local_api_install(version="1.043-SNAPSHOT")
+local_api_install(version="2.0.0-SNAPSHOT")
 ```
 
 A pinned version is installed as given rather than checked against the channel's newest, which is what makes it useful for reproducing an earlier run or bisecting a regression. `force=True` reinstalls regardless.

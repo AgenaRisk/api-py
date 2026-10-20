@@ -42,7 +42,6 @@ TOOLS_DIR = os.environ.get(
     "AGENA_TOOLS_DIR", os.path.join(os.path.expanduser("~"), ".agena.ai", "tools")
 )
 
-API_DIR = os.path.join(TOOLS_DIR, "api")
 #: Version-stamped, so switching Java majors actually takes effect on a machine that
 #: already has another one. Unstamped, "is Java present" answered yes for any Java once
 #: unpacked here, so a change of runtime would have been silently ignored on every
@@ -53,7 +52,11 @@ LICENSING_DIR = os.path.join(TOOLS_DIR, "licensing")
 REPO_RELEASE = "https://mvn.agenarisk.com/repository/internal"
 REPO_SNAPSHOT = "https://mvn.agenarisk.com/repository/snapshots"
 GROUP_ID = "com.agenarisk"
-ARTIFACT_ID = "com.agenarisk.api"
+#: The engine. The API project was merged into core (ARC-324), so this is core's artifact.
+ARTIFACT_ID = "com.agenarisk.core"
+#: ``<tools>/core``: each artifact installs under its own directory, so the versions of
+#: different artifacts, which mean nothing relative to each other, are never compared.
+API_DIR = os.path.join(TOOLS_DIR, ARTIFACT_ID.rsplit(".", 1)[-1])
 
 LICENSING_URL = "https://resources.agena.ai/download/archive/lib-v3.44.0.zip"
 PRODUCT_URL = "https://resources.agena.ai/products/v3/developer/product.json"
@@ -574,7 +577,7 @@ def install_api(channel=None, version=None, update=False, force=False):
     installed, when ``channel`` names the channel the installed version did not come
     from, or when ``force`` is set.
 
-    Installs are version-stamped — ``<tools>/api/<version>/`` with a ``current``
+    Installs are version-stamped — ``<tools>/core/<version>/`` with a ``current``
     pointer — so a snapshot can sit beside a release and rolling back is a matter of
     moving the pointer.
     """
