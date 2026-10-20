@@ -28,6 +28,7 @@ import stat
 import subprocess
 import tarfile
 import tempfile
+import time
 import zipfile
 from sys import platform
 
@@ -527,6 +528,29 @@ def installed_version():
     return version if os.path.isdir(os.path.join(API_DIR, version)) else None
 
 
+#: Written into each install's directory: which build of the version it is. The same
+#: file and fields Athena writes (ApiDownloader.STAMP_FILE), as the directory is shared.
+STAMP_FILE = ".install.json"
+
+
+def _build_of(bundle):
+    """``(timestamp, buildNumber)`` of a snapshot bundle's file name; ``(None, None)`` for a release."""
+    match = re.search(r"-(\d{8}\.\d{6})-(\d+)-runtime\.zip$", bundle)
+    return (match.group(1), match.group(2)) if match else (None, None)
+
+
+def installed_stamp():
+    """The installed build's stamp (version, channel, timestamp, buildNumber), or ``{}``."""
+    version = installed_version()
+    if version is None:
+        return {}
+    try:
+        with open(os.path.join(API_DIR, version, STAMP_FILE)) as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return {}
+
+
 def jar_path():
     """Path to the installed API jar, or None if the API is not installed."""
     version = installed_version()
@@ -602,11 +626,18 @@ def install_api(channel=None, version=None, update=False, force=False):
     base = _repo_base(channel)
     if version is None:
         version = resolve_version(channel)
-    if not force and installed == version:
+    name = _bundle_name(base, version)
+    timestamp, build_number = _build_of(name)
+    # A snapshot keeps its version across every build, so the version alone cannot say
+    # whether the install is current: compare the build too.
+    stamp = installed_stamp()
+    if not force and installed == version and (
+        timestamp is None
+        or (stamp.get("timestamp") == timestamp and stamp.get("buildNumber") == build_number)
+    ):
         logging.info("API %s is already the newest on the %s channel", version, channel)
         return version
 
-    name = _bundle_name(base, version)
     target = os.path.join(API_DIR, version)
     # Replace this version's directory only: the others are kept on purpose.
     shutil.rmtree(target, ignore_errors=True)
@@ -629,9 +660,26 @@ def install_api(channel=None, version=None, update=False, force=False):
         shutil.rmtree(target, ignore_errors=True)
         raise ValueError("The bundle for {} contained no jar".format(version))
 
+    with open(os.path.join(target, STAMP_FILE), "w") as handle:
+        json.dump(
+            {
+                "version": version,
+                "channel": channel,
+                "timestamp": timestamp,
+                "buildNumber": build_number,
+                "installedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            },
+            handle,
+            indent=2,
+        )
     with open(os.path.join(API_DIR, "current"), "w") as handle:
         handle.write(version)
-    logging.info("Installed API %s from the %s channel", version, channel)
+    logging.info(
+        "Installed API %s%s from the %s channel",
+        version,
+        " build {}".format(build_number) if build_number else "",
+        channel,
+    )
 
     _prune_old_versions(version)
     return version
