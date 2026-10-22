@@ -529,19 +529,63 @@ def install_licensing(force=False):
 # --------------------------------------------------------------------------------------
 
 
-def installed_version():
-    """Version of the installed API, or None."""
-    pointer = os.path.join(API_DIR, "current")
-    if not os.path.exists(pointer):
-        return None
-    with open(pointer) as handle:
-        version = handle.read().strip()
-    return version if os.path.isdir(os.path.join(API_DIR, version)) else None
-
-
 #: Written into each install's directory: which build of the version it is. The same
 #: file and fields Athena writes (ApiDownloader.STAMP_FILE), as the directory is shared.
 STAMP_FILE = ".install.json"
+
+#: Names the directory of the build in use, not its version. Read by Athena and the bench
+#: too.
+CURRENT_FILE = "current"
+
+#: A new build being unpacked, and a pruned one awaiting removal. Both sit beside the
+#: installs, and the leading dot keeps them out of the installs.
+STAGING_PREFIX = ".staging-"
+RETIRED_PREFIX = ".retired-"
+
+#: How long moving a new build into place keeps retrying a rename that something is
+#: briefly blocking.
+RENAME_RETRY_SECONDS = 5
+
+
+def _current_folder():
+    """The directory name ``current`` holds, or None when nothing is installed."""
+    try:
+        with open(os.path.join(API_DIR, CURRENT_FILE)) as handle:
+            return handle.read().strip() or None
+    except OSError:
+        return None
+
+
+def installed_path():
+    """Directory of the installed API, or None."""
+    folder = _current_folder()
+    if folder is None:
+        return None
+    directory = os.path.join(API_DIR, folder)
+    return directory if os.path.isdir(directory) else None
+
+
+def _read_stamp(directory):
+    """The stamp in an install directory, or None when it has none."""
+    try:
+        with open(os.path.join(directory, STAMP_FILE)) as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return None
+
+
+def installed_version():
+    """
+    Version of the installed API, or None.
+
+    From the stamp, since the directory name carries the build too
+    (``2.0.0-SNAPSHOT-34``, or ``2.0.0-SNAPSHOT-34-r2`` for a reinstall of it); an install
+    from before stamps existed is named after its version alone.
+    """
+    directory = installed_path()
+    if directory is None:
+        return None
+    return (_read_stamp(directory) or {}).get("version") or os.path.basename(directory)
 
 
 def _build_of(bundle):
@@ -552,40 +596,159 @@ def _build_of(bundle):
 
 def installed_stamp():
     """The installed build's stamp (version, channel, timestamp, buildNumber), or ``{}``."""
-    version = installed_version()
-    if version is None:
-        return {}
-    try:
-        with open(os.path.join(API_DIR, version, STAMP_FILE)) as handle:
-            return json.load(handle)
-    except (OSError, ValueError):
-        return {}
+    directory = installed_path()
+    return (_read_stamp(directory) if directory else None) or {}
+
+
+def _is_engine_jar(name):
+    return name.endswith(".jar") and "-javadoc" not in name and "-sources" not in name
 
 
 def jar_path():
     """Path to the installed API jar, or None if the API is not installed."""
-    version = installed_version()
-    if version is None:
+    directory = installed_path()
+    if directory is None:
         return None
-    directory = os.path.join(API_DIR, version)
     for name in sorted(os.listdir(directory)):
-        if name.endswith(".jar") and "-javadoc" not in name and "-sources" not in name:
+        if _is_engine_jar(name):
             return os.path.join(directory, name)
     return None
 
 
-def _prune_old_versions(keep):
+def _iso_time(seconds=None):
+    """UTC time in the form Athena stamps (``2026-10-22T15:09:30.913Z``), so they sort together."""
+    seconds = time.time() if seconds is None else seconds
+    return "{}.{:03d}Z".format(
+        time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(seconds)), int(seconds * 1000) % 1000
+    )
+
+
+def _build_folder_name(version, timestamp, build_number):
+    """
+    The directory a build installs into: a release under its version, a snapshot under
+    its version and build number, since every push republishes ``2.0.0-SNAPSHOT``.
+    """
+    if not version.endswith("-SNAPSHOT"):
+        return version
+    return "{}-{}".format(version, build_number or timestamp or int(time.time() * 1000))
+
+
+def _free_folder_name(name):
+    """
+    ``name``, or ``name-r2``, ``name-r3``... when a directory of that name exists.
+    Reinstalling the build already in use is the case: its directory may be a running
+    engine's, so it is left alone and the reinstall goes beside it.
+    """
+    candidate, n = name, 2
+    while os.path.exists(os.path.join(API_DIR, candidate)):
+        candidate = "{}-r{}".format(name, n)
+        n += 1
+    return candidate
+
+
+def _rename_retrying(source, destination):
+    """
+    Rename, retrying while Windows reports the path in use: a virus scanner reading the
+    newly unpacked files clears in a moment.
+    """
+    until = time.time() + RENAME_RETRY_SECONDS
+    while True:
+        try:
+            os.rename(source, destination)
+            return
+        except FileExistsError:
+            raise
+        except PermissionError:
+            if time.time() > until:
+                raise
+        except OSError as error:
+            # 32: ERROR_SHARING_VIOLATION, which Python does not map to PermissionError.
+            if getattr(error, "winerror", None) != 32 or time.time() > until:
+                raise
+        time.sleep(0.25)
+
+
+def _remove_tree(directory):
+    """Best effort: a directory that cannot be removed now is removed by the next install."""
+    shutil.rmtree(directory, ignore_errors=True)
+
+
+def _remove_leftovers():
+    """Staging and retired directories an interrupted install left behind."""
     try:
-        directories = sorted(
-            (d for d in os.listdir(API_DIR) if os.path.isdir(os.path.join(API_DIR, d))),
-            key=_version_key,
-            reverse=True,
-        )
-        for directory in directories[KEEP_VERSIONS:]:
-            if directory == keep:
+        for name in os.listdir(API_DIR):
+            if name.startswith(STAGING_PREFIX) or name.startswith(RETIRED_PREFIX):
+                _remove_tree(os.path.join(API_DIR, name))
+    except OSError:
+        # Housekeeping, like pruning: never a reason to fail an install.
+        pass
+
+
+def _looks_like_install(directory):
+    """Whether a directory holds an installed bundle, rather than being some other thing."""
+    try:
+        if os.path.exists(os.path.join(directory, STAMP_FILE)):
+            return True
+        # Installs made before stamps existed still have the jar at their root, which
+        # other directories here (the bench's ``build/``) do not.
+        return any(_is_engine_jar(name) for name in os.listdir(directory))
+    except OSError:
+        return False
+
+
+def _prune_old_builds():
+    """
+    Keep the newest build of each of the newest KEEP_VERSIONS versions, plus whatever is
+    current; older builds of a version are superseded outright.
+
+    The previous build's directory may still be in use by an engine started from it
+    (Athena's engine service, or another script). It is renamed aside before it is
+    deleted, because a rename is refused whole while a jar inside is open, where a delete
+    stops part way. A directory still in use is left for a later install.
+    """
+    try:
+        installs = []
+        for name in os.listdir(API_DIR):
+            directory = os.path.join(API_DIR, name)
+            if name.startswith(".") or not os.path.isdir(directory):
                 continue
-            shutil.rmtree(os.path.join(API_DIR, directory), ignore_errors=True)
-            logging.info("Removed superseded API install %s", directory)
+            if not _looks_like_install(directory):
+                continue
+            stamp = _read_stamp(directory) or {}
+            installs.append(
+                (
+                    directory,
+                    stamp.get("version") or name,
+                    stamp.get("installedAt") or _iso_time(os.path.getmtime(directory)),
+                )
+            )
+
+        newest_build = {}
+        for directory, version, installed_at in installs:
+            seen = newest_build.get(version)
+            if seen is None or installed_at > seen[1]:
+                newest_build[version] = (directory, installed_at)
+        newest_versions = sorted(newest_build, key=_version_key, reverse=True)
+        keep = {newest_build[v][0] for v in newest_versions[:KEEP_VERSIONS]}
+        current = _current_folder()
+        if current:
+            keep.add(os.path.join(API_DIR, current))
+
+        for directory, _, _ in installs:
+            if directory in keep:
+                continue
+            name = os.path.basename(directory)
+            retired = os.path.join(
+                API_DIR,
+                "{}{}-{}-{}".format(RETIRED_PREFIX, name, os.getpid(), int(time.time() * 1000)),
+            )
+            try:
+                os.rename(directory, retired)
+            except OSError as error:
+                logging.info("Kept superseded API install %s for now: %s", name, error)
+                continue
+            _remove_tree(retired)
+            logging.info("Removed superseded API install %s", name)
     except OSError as error:
         # Housekeeping: failing to prune must never fail an install.
         logging.info("Could not prune old API installs: %s", error)
@@ -617,9 +780,12 @@ def install_api(channel=None, version=None, update=False, force=False):
     (so with a snapshot installed, a call without ``channel="snapshot"`` moves to the
     newest release), or when ``force`` is set.
 
-    Installs are version-stamped — ``<tools>/core/<version>/`` with a ``current``
-    pointer — so a snapshot can sit beside a release and rolling back is a matter of
-    moving the pointer.
+    Each build installs into a directory of its own — ``<tools>/core/<version>/`` for a
+    release, ``<tools>/core/<version>-<build>/`` for a snapshot, with ``-r2``, ``-r3``...
+    added when that directory exists — and ``current`` names the one in use. Nothing
+    installed is touched, since an engine running from it holds its jars open: on
+    Windows such a directory can be neither deleted nor renamed. The layout is Athena's
+    (ApiDownloader), as the directory is shared.
     """
     installed = installed_version()
     channel = channel or (channel_of(version) if version else "release")
@@ -652,50 +818,66 @@ def install_api(channel=None, version=None, update=False, force=False):
         logging.info("API %s is already the newest on the %s channel", version, channel)
         return version
 
-    target = os.path.join(API_DIR, version)
-    # Replace this version's directory only: the others are kept on purpose.
-    shutil.rmtree(target, ignore_errors=True)
     os.makedirs(API_DIR, exist_ok=True)
-
+    _remove_leftovers()
+    folder = _free_folder_name(_build_folder_name(version, timestamp, build_number))
+    target = os.path.join(API_DIR, folder)
+    # Unpacked under a staging name so a half-written build never looks installed.
+    staging = os.path.join(
+        API_DIR,
+        "{}{}-{}-{}".format(STAGING_PREFIX, version, os.getpid(), int(time.time() * 1000)),
+    )
     try:
-        _install_archive("{}/{}/{}".format(base, version, name), target, [], force=True)
-    except requests.HTTPError as error:
-        # A version can resolve perfectly well and still have no bundle: releases made
-        # before the runtime bundle existed publish only a bare jar. Saying so beats
-        # handing back a 404 and a URL.
-        if error.response is not None and error.response.status_code == 404:
-            raise ValueError(
-                "The {} channel's newest version, {}, has no runtime bundle. Releases "
-                "made before this distribution format publish only a bare jar. Try "
-                "local_api_install(channel='snapshot').".format(channel, version)
-            ) from error
-        raise
-    if jar_path() is None and not any(f.endswith(".jar") for f in os.listdir(target)):
-        shutil.rmtree(target, ignore_errors=True)
-        raise ValueError("The bundle for {} contained no jar".format(version))
+        try:
+            _install_archive("{}/{}/{}".format(base, version, name), staging, [], force=True)
+        except requests.HTTPError as error:
+            # A version can resolve perfectly well and still have no bundle: releases
+            # made before the runtime bundle existed publish only a bare jar. Saying so
+            # beats handing back a 404 and a URL.
+            if error.response is not None and error.response.status_code == 404:
+                raise ValueError(
+                    "The {} channel's newest version, {}, has no runtime bundle. Releases "
+                    "made before this distribution format publish only a bare jar. Try "
+                    "local_api_install(channel='snapshot').".format(channel, version)
+                ) from error
+            raise
+        if not any(_is_engine_jar(f) for f in os.listdir(staging)):
+            raise ValueError("The bundle for {} contained no jar".format(version))
 
-    with open(os.path.join(target, STAMP_FILE), "w") as handle:
-        json.dump(
-            {
-                "version": version,
-                "channel": channel,
-                "timestamp": timestamp,
-                "buildNumber": build_number,
-                "installedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            },
-            handle,
-            indent=2,
-        )
-    with open(os.path.join(API_DIR, "current"), "w") as handle:
-        handle.write(version)
+        with open(os.path.join(staging, STAMP_FILE), "w") as handle:
+            json.dump(
+                {
+                    "version": version,
+                    "channel": channel,
+                    "timestamp": timestamp,
+                    "buildNumber": build_number,
+                    "installedAt": _iso_time(),
+                },
+                handle,
+                indent=2,
+            )
+        try:
+            _rename_retrying(staging, target)
+        except OSError as error:
+            raise ValueError(
+                "Could not put the engine {} in place ({}); the installed engine is "
+                "unchanged".format(version, error)
+            ) from error
+    finally:
+        _remove_tree(staging)
+
+    # Last, so until here the previous build is the installed one in every respect.
+    with open(os.path.join(API_DIR, CURRENT_FILE), "w") as handle:
+        handle.write(folder)
     logging.info(
-        "Installed API %s%s from the %s channel",
+        "Installed API %s%s from the %s channel to %s",
         version,
         " build {}".format(build_number) if build_number else "",
         channel,
+        target,
     )
 
-    _prune_old_versions(version)
+    _prune_old_builds()
     return version
 
 
